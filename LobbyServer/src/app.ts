@@ -1,9 +1,10 @@
 import express, {Request, Response } from "express"
-import lobbyRoutes  from "./routes/lobby.routes"
+import router from "./routes/Routes";
 
 const app = express();
 
+
 app.use(express.json());
-app.use(lobbyRoutes);
+app.use(router);
 
 export default app;

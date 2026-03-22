@@ -19,5 +19,7 @@
     "exactOptionalPropertyTypes": true,
 
     "skipLibCheck": true
-  }
+
+  },
+  "exclude": ["prisma.config.ts", "node_modules"]
 }

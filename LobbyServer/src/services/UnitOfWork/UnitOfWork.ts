@@ -1,31 +1,38 @@
-import { QueryRunner, DataSource } from "typeorm";
+// src/unitOfWork/UnitOfWork.ts
 import { IPlayerRepository } from "../../repositories/IPlayerRepository";
 import { PlayerRepository_DB } from "../../repositories/impl/PlayerRepository_DB";
+import { sequelize } from "../../config/DB.config"
+import { Transaction } from "sequelize";
 
 export class UnitOfWork {
-    private queryRunner: QueryRunner;
-    public players: IPlayerRepository;
+  public players!: IPlayerRepository;
+  private transaction?: Transaction | undefined;
 
-    constructor(private dataSource: DataSource) {
-        this.queryRunner = this.dataSource.createQueryRunner();
-        
-        this.players = new PlayerRepository_DB(this.queryRunner);
-    }
+  constructor() {
+    // Репозитории будут инициализированы после start()
+  }
 
-    async start() {
-        await this.queryRunner.connect();
-        await this.queryRunner.startTransaction();
-    }
+  async start() {
+    // Создаём транзакцию
+    this.transaction = await sequelize.transaction();
 
-    async commit() {
-        await this.queryRunner.commitTransaction();
-    }
+    // Привязываем репозитории к этой транзакции
+    this.players = new PlayerRepository_DB(this.transaction);
+  }
 
-    async rollback() {
-        await this.queryRunner.rollbackTransaction();
-    }
+  async commit() {
+    if (!this.transaction) throw new Error("Transaction not started");
+    await this.transaction.commit();
+    this.transaction = undefined;
+  }
 
-    async release() {
-        await this.queryRunner.release();
-    }
+  async rollback() {
+    if (!this.transaction) throw new Error("Transaction not started");
+    await this.transaction.rollback();
+    this.transaction = undefined;
+  }
+
+  async release() {
+    this.transaction = undefined;
+  }
 }
