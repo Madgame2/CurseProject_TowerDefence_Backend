@@ -1,5 +1,5 @@
 import { RegisterUserDTO } from "../dto/RegisterUserDTO";
-import { UnitOfWork } from "../services/UnitOfWork/UnitOfWork";
+import { AuthorizationDto } from "../dto/AuthorizationDto";
 import { Request, Response } from "express";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
@@ -69,6 +69,34 @@ import { ConfirmProfileDTO } from "../dto/ConfirmprofileDto";
                 res.status(500).json({
                     success: false,
                     message: "Ошибка при регистрации: " + error.message
+                });
+            }
+        }
+
+        public authUser = async (req: Request, res: Response) =>{
+            try{
+                const dto = plainToInstance(AuthorizationDto, req.body);
+                const errors = await validate(dto);
+
+                if (errors.length > 0) {
+                    return res.status(400).json({ success: false,message: "В DTO" ,errors });
+                }
+
+                const result =await this.authService.tryAuthUser(dto);
+
+                if(!result.success){
+                    return res.status(result.code || 400).json({
+                        success: false
+                    }); 
+                }
+
+                res.status(200).json(result);
+
+            }catch(error){
+                console.error(error);
+                res.status(500).json({
+                    success: false,
+                    message: "Ошибка при авторизации"
                 });
             }
         }

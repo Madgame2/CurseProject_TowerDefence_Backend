@@ -10,7 +10,7 @@ async function startServer() {
     console.log("✅ DB connected");
 
     // Синхронизация моделей (если нужно)
-    await sequelize.sync({ force: true, match: /^(?!.*email).*$/ }); // или sync({ alter: true }) для автообновления схемы
+    await sequelize.sync(); // или sync({ alter: true }) для автообновления схемы
 
     // Запускаем сервер
     app.listen(CONFIG.server.port, () => {

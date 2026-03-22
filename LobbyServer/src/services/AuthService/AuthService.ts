@@ -4,9 +4,11 @@ import { RegistrationTempService } from "./registration-temp.service";
 import bcrypt from "bcrypt";
 import { EmailService } from "../EmailService/Email.service";
 import { UnitOfWork } from "../UnitOfWork/UnitOfWork";
-import { CONFIG } from "../../config/config";
-import prisma from "../../config/prisma.config";
-import { debug } from "node:console";
+import { AuthorizationDto } from "../../dto/AuthorizationDto";
+import { Player } from "../../models/player.entity";
+import crypto from "crypto";
+import { redis } from "../../config/redis.config";
+import jwt, { SignOptions } from "jsonwebtoken";
 
 
 export class AuthService {
@@ -38,6 +40,10 @@ export class AuthService {
         return player;
     }
 
+    private getHashpassword = async (password:string)=>{
+        return await bcrypt.hash(password, 10);
+    }
+
     public startRegister = async (dto: RegisterUserDTO) => {
         try {
             const existingUser = await this.findUserByEmail(dto.email);
@@ -54,7 +60,7 @@ export class AuthService {
                 };
             }
 
-            const hashPassword = await bcrypt.hash(dto.password, 10);
+            const hashPassword = await this.getHashpassword(dto.password);
             dto.password = hashPassword;
 
             const code: string = await this.saveCode(dto);
@@ -100,5 +106,74 @@ export class AuthService {
                 await this.uow.rollback(); // Ждём rollback
                 throw error;
             }
+    }
+
+    private processUserAuthorization= async (player: Player)=>{
+        const sessionId = crypto.randomUUID();
+
+        await redis.set(
+            `session:${sessionId}`,
+            JSON.stringify({
+                userId: player.id
+            }),
+            "EX",
+            60 * 60 * 24 * 7 // 7 дней
+        );
+
+
+        const payload = {
+            userId: player.id,
+            sessionId
+        };
+
+        // Берем TTL из env, если нет — ставим дефолт "15m"
+        const ttl = process.env.JWT_TTL ?? "15m"; // оператор nullish coalescing гарантирует, что не undefined
+
+        const options = {
+            expiresIn: ttl as "15m" | "30m" | "1h" | "2h" | "1d" // или оставь как string, если уверен в значении
+        };
+
+        const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, options);
+
+
+        const refreshToken = crypto.randomUUID();
+
+        await redis.set(
+            `refresh:${refreshToken}`,
+            sessionId,
+            "EX",
+            60 * 60 * 24 * 30 // 30 дней
+        );
+
+        return {
+            accessToken,
+            refreshToken
+        };
+    }
+
+    public tryAuthUser = async(dto:AuthorizationDto) =>{
+
+        await this.uow.start();
+        const user = await this.uow.players.findByEmail(dto.email);
+        await this.uow.commit();
+
+        console.log(dto);
+
+        if(!user){
+            return {success: false, code: 404}
+        }
+
+        const isValid = await bcrypt.compare(dto.password, user.password);
+
+        if (!isValid) {
+            return { success: false, code: 403 };
+        }
+
+        const tokens = await this.processUserAuthorization(user);
+
+        return {
+            success: true,
+            ...tokens
+        };
     }
 }
