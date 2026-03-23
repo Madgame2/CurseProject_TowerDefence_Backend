@@ -37,6 +37,7 @@
     "mssql": "^12.2.1",
     "nodemailer": "^8.0.3",
     "sequelize": "^6.37.8",
+    "socket.io": "^4.8.3",
     "uuid": "^13.0.0"
   }
 }

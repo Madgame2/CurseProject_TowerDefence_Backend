@@ -140,7 +140,9 @@ export class AuthService {
 
         await redis.set(
             `refresh:${refreshToken}`,
-            sessionId,
+                JSON.stringify({
+                    userId: player.id
+                }),
             "EX",
             60 * 60 * 24 * 30 // 30 дней
         );

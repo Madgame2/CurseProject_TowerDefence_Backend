@@ -1,27 +1,22 @@
-import app from "./app"
-import {CONFIG} from "./config/config"
+import { app, httpServer } from "./app";
+import { CONFIG } from "./config/config";
 import { sequelize } from "./config/DB.config";
-
 
 async function startServer() {
   try {
-    // Подключаемся к базе
     await sequelize.authenticate();
     console.log("✅ DB connected");
+    await sequelize.sync();
 
-    // Синхронизация моделей (если нужно)
-    await sequelize.sync(); // или sync({ alter: true }) для автообновления схемы
-
-    // Запускаем сервер
-    app.listen(CONFIG.server.port, () => {
+    // теперь слушаем **httpServer**, а не app.listen
+    httpServer.listen(CONFIG.server.port, () => {
       console.log(`Server running on port ${CONFIG.server.port}`);
     });
-  } catch (err) {
 
+  } catch (err) {
     console.error("❌ Failed to start server:", err);
-    process.exit(1); // аварийный выход
+    process.exit(1);
   }
 }
 
-// Запуск
 startServer();
