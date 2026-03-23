@@ -33,6 +33,7 @@ export const wsAuth = async (socket: Socket, next: (err?: any) => void) => {
 
         const session = JSON.parse(redisRecord);
         socket.data.userId = session.userId;
+        socket.data.sessionId = payload.sessionId;
 
         next();
     }

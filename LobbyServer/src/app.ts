@@ -3,6 +3,8 @@ import router from "./routes/Routes";
 import { Server } from "socket.io";
 import { createServer } from "http";
 import { wsAuth } from "./ws/middleware/wsAuthMiddleware";
+import { createUpdateSessionMiddleware } from "./ws/middleware/updateSessionMiddleware";
+
 
 const app = express();
 app.use(express.json());
@@ -21,6 +23,7 @@ io.use(wsAuth);
 
 io.on("connection", (socket)=>{
 
+    socket.use(createUpdateSessionMiddleware(socket));
 
     socket.on("disconnect",()=>{
 
