@@ -8,7 +8,7 @@ async function startServer() {
     console.log("✅ DB connected");
     await sequelize.sync();
 
-    // теперь слушаем **httpServer**, а не app.listen
+
     httpServer.listen(CONFIG.server.port, () => {
       console.log(`Server running on port ${CONFIG.server.port}`);
     });

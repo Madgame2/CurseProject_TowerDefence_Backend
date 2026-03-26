@@ -16,7 +16,7 @@ import { ConfirmProfileDTO } from "../dto/ConfirmprofileDto";
                 const errors = await validate(dto);
 
                 if (errors.length > 0) {
-                    return res.status(400).json({ success: false,message: "В котроллере" ,errors });
+                    return res.status(400).json({ success: false ,errors });
                 }
 
                 const result = await this.authService.startRegister(dto);
@@ -97,6 +97,40 @@ import { ConfirmProfileDTO } from "../dto/ConfirmprofileDto";
                 res.status(500).json({
                     success: false,
                     message: "Ошибка при авторизации"
+                });
+            }
+        }
+
+        public deleteUnconfUser = async (req:Request, res: Response)=>{
+            try{
+
+            const email = req.query.email as string;
+
+            if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "Email обязателен"
+                });
+            }
+
+                const result = await this.authService.deleteUnconfirmedUser(email);
+
+                if(!result?.success){
+                    return res.status(result?.code || 400).json({
+                        success: false
+                    });
+                }
+
+                res.status(200).json({
+                    success: true,
+                    message: "Пользователь удален."
+                });
+
+            }catch (error:any){
+                console.error(error);
+                res.status(500).json({
+                    success: false,
+                    message:  error.message
                 });
             }
         }

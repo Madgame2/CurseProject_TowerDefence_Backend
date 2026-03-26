@@ -29,6 +29,22 @@ export class AuthService {
         return code;
     }
 
+    public deleteUnconfirmedUser = async (email :string)=>{
+        const existUnconfirmuser = await this._registrationTempService.get(email);
+
+        console.log(existUnconfirmuser);
+        if(!existUnconfirmuser){
+                  return {
+                    code: 404,
+                    success: false,
+            };
+        }
+
+        await this._registrationTempService.delete(email);
+
+        return {success: true}
+    }
+
     private generateCode(): string{
         return Math.floor(100000 + Math.random() * 900000).toString();
     }
