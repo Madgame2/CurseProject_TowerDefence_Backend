@@ -6,15 +6,20 @@ import { WSResponse } from "../../types/WSResponse";
 import { MyJWTPayload } from "../../types/MyJWTPayload";
 
 import { WSError } from "../../types/WSError";
+import { WSContext } from "../types/WSContext";
 
 dotenv.config();
 
-export const wsAuth = async (socket: Socket, next: (err?: any) => void) => {
+export const wsAuth = async (ctx: WSContext, next:(err?: any) => void) => {
     try {
-        const token = socket.handshake.auth.token;
+        const url = new URL(ctx.req.url || "", "http://localhost");
+        const token = url.searchParams.get("token");
+
         if (!token) {
             const errResponse: WSResponse = { code: 404, message: "No token" };
-            throw new Error(JSON.stringify(errResponse));
+            ctx.ws.send(JSON.stringify(errResponse));
+            ctx.ws.close();
+            return;
         }
 
         let payload: MyJWTPayload;
@@ -22,18 +27,22 @@ export const wsAuth = async (socket: Socket, next: (err?: any) => void) => {
             payload = jwt.verify(token, process.env.JWT_SECRET!) as MyJWTPayload;
         } catch (jwtErr) {
             const errResponse: WSResponse = { code: 401, message: "Invalid token" };
-            throw new Error(JSON.stringify(errResponse));
+            ctx.ws.send(JSON.stringify(errResponse));
+            ctx.ws.close();
+            return;
         }
 
         const redisRecord = await redis.get(`session:${payload.sessionId}`);
         if (!redisRecord) {
             const errResponse: WSResponse = { code: 401, message: "Session expired" };
-            throw new Error(JSON.stringify(errResponse));
+            ctx.ws.send(JSON.stringify(errResponse));
+            ctx.ws.close();
+            return;
         }
 
         const session = JSON.parse(redisRecord);
-        socket.data.userId = session.userId;
-        socket.data.sessionId = payload.sessionId;
+        ctx.userId = session.userId;
+        ctx.sessionId = payload.sessionId;
 
         next();
     }

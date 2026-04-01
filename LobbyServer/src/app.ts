@@ -2,8 +2,14 @@ import express from "express";
 import router from "./routes/Routes";
 import { Server } from "socket.io";
 import { createServer } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { wsAuth } from "./ws/middleware/wsAuthMiddleware";
 import { createUpdateSessionMiddleware } from "./ws/middleware/updateSessionMiddleware";
+import { WSContext } from "./ws/types/WSContext";
+import { runMiddlewares } from "./ws/MiddlewareModule/runMiddlewares";
+import { WSResponse } from "./types/WSResponse";
+import { Json } from "sequelize/types/utils";
+
 
 
 const app = express();
@@ -14,20 +20,34 @@ app.use(router);
 
 const httpServer = createServer(app);
 
-const io = new Server(httpServer, {
-    cors: { origin: "*" }
-});
-
-io.use(wsAuth);
+const wss = new WebSocketServer({ server: httpServer });
 
 
-io.on("connection", (socket)=>{
 
-    socket.use(createUpdateSessionMiddleware(socket));
+wss.on("connection", async (ws: WebSocket, req) =>{
+    const ctx: WSContext = { ws,req };
 
-    socket.on("disconnect",()=>{
+    await runMiddlewares(ctx,[
+        wsAuth
+    ])
+    console.log("User connected:", ctx.userId);
+    //socket.use(createUpdateSessionMiddleware(socket));
+
+    ws.on("message",()=>{
 
     })
+
+    ws.on("close",()=>{
+
+    })
+
+    ws.on("error", (err) => { });
+
+    const response: WSResponse = {
+        code: 200,
+        message: "Connected"
+    }
+    ws.send(JSON.stringify(response));
 })
 
-export { app, httpServer, io };
+export { app, httpServer, wss };
