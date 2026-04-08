@@ -1,14 +1,13 @@
-import { Socket } from "socket.io";
 import { redis } from "../../config/redis.config";
+import { WSContext } from "../types/WSContext";
 
 /**
  * Фабрика middleware, которая возвращает функцию для socket.use
  * @param socket сокет, из которого можно взять sessionId
  */
-export const createUpdateSessionMiddleware = (socket: Socket) => {
-    return async (packet: any[], next: (err?: any) => void) => {
+export const UpdateSession = async(ctx: WSContext, next:(err?: any) => void) => {
         try {
-            const sessionId = socket.data.sessionId; // берем sessionId из socket.data
+            const sessionId = ctx.sessionId; 
 
             console.log(sessionId);
             if (sessionId) {
@@ -24,4 +23,3 @@ export const createUpdateSessionMiddleware = (socket: Socket) => {
             next(err);
         }
     };
-};

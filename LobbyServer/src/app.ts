@@ -4,19 +4,24 @@ import { Server } from "socket.io";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { wsAuth } from "./ws/middleware/wsAuthMiddleware";
-import { createUpdateSessionMiddleware } from "./ws/middleware/updateSessionMiddleware";
+import { UpdateSession } from "./ws/middleware/updateSessionMiddleware";
 import { WSContext } from "./ws/types/WSContext";
 import { runMiddlewares } from "./ws/MiddlewareModule/runMiddlewares";
 import { WSResponse } from "./types/WSResponse";
 import { Json } from "sequelize/types/utils";
-
-
+import { WSRouter } from "./ws/modules/WSRouter";
+import { parseMessage } from "./ws/middleware/parseMessageMiddleware";
+import WSrouter from "./ws/Router/WSRouter";
+import { isValidSession } from "./ws/middleware/isValidSession";
+import { LobbyCleanupJob } from "./BG/lobbyCleanupJob";
+import { LobbyService } from "./ws/Services/LobbyService/Lobby.Service";
 
 const app = express();
 app.use(express.json());
 app.use(router);
 
-
+const cleanupJob = new LobbyCleanupJob();
+cleanupJob.start();
 
 const httpServer = createServer(app);
 
@@ -31,14 +36,29 @@ wss.on("connection", async (ws: WebSocket, req) =>{
         wsAuth
     ])
     console.log("User connected:", ctx.userId);
-    //socket.use(createUpdateSessionMiddleware(socket));
+    (ws as any).userId = ctx.userId;
 
-    ws.on("message",()=>{
+    ws.on("message",async (data)=>{
 
+        const ctx: WSContext = { ws, req };
+
+        ctx.rawMessage = data.toString();
+
+         await runMiddlewares(ctx,[
+            isValidSession,
+            parseMessage,
+            UpdateSession
+        ])
+
+        WSrouter.handle(ctx)
     })
 
-    ws.on("close",()=>{
+    ws.on("close", async ()=>{
+        const userId = (ws as any).userId;
+        if (!userId) return;
 
+       const lobbyservise: LobbyService = new LobbyService();
+       await lobbyservise.onDisconnect(userId);
     })
 
     ws.on("error", (err) => { });

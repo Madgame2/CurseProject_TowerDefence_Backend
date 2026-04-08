@@ -1,12 +1,18 @@
 import { WebSocket } from "ws";
 import { IncomingMessage } from "http";
+import { WSMessage } from "./WSMessage";
 
 
 export interface WSContext {
     ws: WebSocket;
     req: IncomingMessage;
+
     userId?: string;
     sessionId?: string;
+
+    message?: WSMessage;
+    rawMessage?: string;
+    
     [key: string]: any; // можно расширять под игру
 }
 

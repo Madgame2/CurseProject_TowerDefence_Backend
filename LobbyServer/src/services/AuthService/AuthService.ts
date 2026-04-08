@@ -11,11 +11,12 @@ import { redis } from "../../config/redis.config";
 import jwt, { SignOptions } from "jsonwebtoken";
 
 
+
 export class AuthService {
     
     private _registrationTempService = new RegistrationTempService();
     private emailService = new EmailService();
-    private uow = new UnitOfWork();
+    private uow = new UnitOfWork(redis);
 
     private async saveCode(dto: RegisterUserDTO): Promise<string> {
         const code = this.generateCode();
