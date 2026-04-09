@@ -1,41 +1,68 @@
 import { UserAlreadInLobbyException } from "../../Exceptions/UserAlreadyInLobbyException";
 import { ILobbyRepository } from "./LobbyRepository/ILobbyRepository"
-import { Lobbyreposiory } from "./LobbyRepository/Imp/LobbyReposiotory.Redis";
 import crypto from "crypto";
 import { UnitOfWork } from "../../../services/UnitOfWork/UnitOfWork";
 import { redis } from "../../../config/redis.config";
 import { LobbyNotFoundException } from "../../Exceptions/LobbyNotFoundException";
 import { LobbyFullException } from "../../Exceptions/LobbyFullException";
+import { Lobby } from "../../types/Lobby";
+import { Lobbyreposiory } from "./LobbyRepository/Imp/LobbyReposiotory.Redis";
 
 export class LobbyService{
 
-    private _lobbyRep : ILobbyRepository = new Lobbyreposiory;
+    private lobbyrep:ILobbyRepository = new Lobbyreposiory();
+    //private _lobbyRep : ILobbyRepository = new Lobbyreposiory;
     private uof = new UnitOfWork(redis);
 
-    public async CreateLobby(hadmaster:string): Promise<string>{
-        const userLoby = await this._lobbyRep.getUserLobby(hadmaster);
-        if(userLoby){
-            throw new UserAlreadInLobbyException(hadmaster,userLoby);
+public async CreateLobby(hadmaster: string): Promise<Lobby | null> {
+    console.log("startCreate");
+    await this.uof.start();
+    console.log("UOW started");
+
+    try {
+        // Проверка существующего лобби через обычный get
+        const userLobby = await this.lobbyrep.getUserLobby(hadmaster);
+
+        console.log("userLoby:", userLobby);
+        if (userLobby) {
+            throw new UserAlreadInLobbyException(hadmaster, userLobby);
         }
+        console.log("noUserLobby");
 
+        // Создание нового lobby
         const newLobbyId = crypto.randomUUID();
-        await this._lobbyRep.setLobbyHost(newLobbyId,hadmaster);
 
-        return newLobbyId;
+        // Сохраняем все данные в Redis через MULTI
+        await this.uof.redisCommand(async (multi) => {
+            multi.set(`lobby:${newLobbyId}:host`, hadmaster);
+            multi.sadd(`lobby:${newLobbyId}:users`, hadmaster);
+            multi.set(`user:${hadmaster}:lobby`, newLobbyId);
+            await multi.exec(); // exec вызываем только один раз
+        });
+
+        // Создаём объект Lobby
+        const lobby = new Lobby(newLobbyId, hadmaster);
+
+        await this.uof.commit();
+        return lobby;
+    } catch (e) {
+        await this.uof.rollback();
+        throw e;
     }
+}
 
     public async joinLobby(userId: string, newLobbyId:string): Promise<void> {
     await this.uof.start(); 
 
     try {
-        const userLobby = await this._lobbyRep.getUserLobbyObj(userId);   
+        const userLobby = await this.uof.lobby!.getUserLobbyObj(userId);   
 
         if (userLobby) {
             await this.handleLobbyLeaderLeaving(userLobby.id, userId);
         }
 
         
-        const newLobby = await this._lobbyRep.getLobby(newLobbyId);
+        const newLobby = await this.uof.lobby!.getLobby(newLobbyId);
         if (!newLobby) throw new LobbyNotFoundException(newLobbyId);
         
         
@@ -59,7 +86,7 @@ public async onDisconnect(userId: string) {
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
-                const lobbyId = await this._lobbyRep.getUserLobby(userId);
+                const lobbyId = await this.uof.lobby!.getUserLobby(userId);
                 if (!lobbyId) return;
 
                 // следим за изменениями
@@ -107,7 +134,7 @@ public async onDisconnect(userId: string) {
     }
 
     public async handleLobbyLeaderLeaving(lobbyId: string, leavingUserId: string) {
-        const lobby = await this._lobbyRep.getLobby(lobbyId);
+        const lobby = await this.uof.lobby!.getLobby(lobbyId);
         if (!lobby) return;
 
         const remainingPlayers = lobby.users.filter(p => p !== leavingUserId);

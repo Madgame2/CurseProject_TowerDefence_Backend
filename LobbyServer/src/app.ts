@@ -8,7 +8,6 @@ import { UpdateSession } from "./ws/middleware/updateSessionMiddleware";
 import { WSContext } from "./ws/types/WSContext";
 import { runMiddlewares } from "./ws/MiddlewareModule/runMiddlewares";
 import { WSResponse } from "./types/WSResponse";
-import { Json } from "sequelize/types/utils";
 import { WSRouter } from "./ws/modules/WSRouter";
 import { parseMessage } from "./ws/middleware/parseMessageMiddleware";
 import WSrouter from "./ws/Router/WSRouter";
@@ -40,10 +39,8 @@ wss.on("connection", async (ws: WebSocket, req) =>{
 
     ws.on("message",async (data)=>{
 
-        const ctx: WSContext = { ws, req };
-
         ctx.rawMessage = data.toString();
-
+        
          await runMiddlewares(ctx,[
             isValidSession,
             parseMessage,

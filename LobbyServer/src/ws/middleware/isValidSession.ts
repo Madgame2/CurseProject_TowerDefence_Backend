@@ -6,6 +6,7 @@ import { redis } from "../../config/redis.config";
 const pendingLoads = new Map<string, Promise<{ userId: string } | null>>();
 
 export const isValidSession = async (ctx: WSContext, next: (err?: any) => void) => {
+    
     const sessionId = ctx.sessionId!;
     
     // Ищем сессию в буфере

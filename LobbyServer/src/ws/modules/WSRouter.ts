@@ -1,6 +1,5 @@
 import { WSContext } from "../types/WSContext"
 import { WSResponse } from "../../types/WSResponse";
-import { Json } from "sequelize/lib/utils";
 
 export class WSRouter {
     private handlers = new Map<string, (ctx:WSContext) => Promise<void>>();

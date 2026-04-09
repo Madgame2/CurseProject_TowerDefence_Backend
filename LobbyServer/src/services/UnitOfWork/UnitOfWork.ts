@@ -5,9 +5,12 @@ import { sequelize } from "../../config/DB.config"
 import { Transaction } from "sequelize";
 import Redis from "ioredis";
 import RedisClient from "ioredis";
+import { ILobbyRepository } from "../../ws/Services/LobbyService/LobbyRepository/ILobbyRepository";
+import { Lobbyreposiory } from "../../ws/Services/LobbyService/LobbyRepository/Imp/LobbyReposiotory.Redis";
 
 export class UnitOfWork {
   public players!: IPlayerRepository;
+  public lobby?: ILobbyRepository = new Lobbyreposiory();
   private transaction?: Transaction | undefined;
   private redisClient: Redis;          // клиент ioredis
   private redisMulti?: ReturnType<RedisClient["multi"]> | null = null;  // MULTI / pipeline для атомарных команд
