@@ -2,16 +2,16 @@ import { WSResponse } from "../../types/WSResponse";
 import { ILobbyRepository } from "../Services/LobbyService/LobbyRepository/ILobbyRepository";
 import { Lobbyreposiory } from "../Services/LobbyService/LobbyRepository/Imp/LobbyReposiotory.Redis";
 import { WSContext } from "../types/WSContext";
-
+import { LobbyService } from "../Services/LobbyService/Lobby.Service";
 
 export const getMyLobby = async (ctx: WSContext) => {
     
     console.log("tryGetMyLobby");
     try {
-        const lobbyRepo: ILobbyRepository = new Lobbyreposiory();
+        const lobbyService :LobbyService = new LobbyService;
         const userId = ctx.userId;
 
-        const lobby = await lobbyRepo.getUserLobbyObj(userId!);
+        const lobby = await lobbyService.GetUserLobbyObj(userId!);
         console.log(lobby);
         
         if (!lobby) {

@@ -7,12 +7,36 @@ import { LobbyNotFoundException } from "../../Exceptions/LobbyNotFoundException"
 import { LobbyFullException } from "../../Exceptions/LobbyFullException";
 import { Lobby } from "../../types/Lobby";
 import { Lobbyreposiory } from "./LobbyRepository/Imp/LobbyReposiotory.Redis";
+import { ProfileService } from "../ProfileSirevice/ProfileService";
+import { LobbyUser } from "../../types/LobbyUser";
 
 export class LobbyService{
 
     private lobbyrep:ILobbyRepository = new Lobbyreposiory();
     //private _lobbyRep : ILobbyRepository = new Lobbyreposiory;
     private uof = new UnitOfWork(redis);
+
+public async GetUserLobbyObj(userId: string): Promise<Lobby | null> {
+    const lobby = await this.lobbyrep.getUserLobbyObj(userId);
+
+    if (!lobby) return null;
+
+    const profiles = await Promise.all(
+        lobby.users.map(async (id: string) => {
+            const userProfile = await ProfileService.getProfile(id);
+
+            return {
+                id: userProfile.id
+            } as LobbyUser;
+        })
+    );
+
+    lobby.usersProfiles = profiles;
+
+    console.log(lobby);
+
+    return lobby;
+}
 
 public async CreateLobby(hadmaster: string): Promise<Lobby | null> {
     console.log("startCreate");
