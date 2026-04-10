@@ -12,7 +12,7 @@ export const getMyLobby = async (ctx: WSContext) => {
         const userId = ctx.userId;
 
         const lobby = await lobbyRepo.getUserLobbyObj(userId!);
-
+        console.log(lobby);
         
         if (!lobby) {
             const res: WSResponse = {
@@ -35,7 +35,8 @@ export const getMyLobby = async (ctx: WSContext) => {
         console.error("Error in getMyLobby:", error);
         ctx.ws.send(JSON.stringify({
             code: 500,
-            message: "Internal server error"
+            message: "Internal server error",
+            requestId: ctx.requestId
         }));
     }
 };

@@ -11,6 +11,11 @@ export class PlayerRepository_DB implements IPlayerRepository {
         this.transaction = transaction ?? null; // если undefined → null
     }
 
+    public async findById(id: string): Promise<Player | null> {
+        return Player.findByPk(id, {
+            transaction: this.transaction,
+        });
+    }
 
     public findByEmail = async (email: string): Promise<Player | null> => {
         return await Player.findOne({
