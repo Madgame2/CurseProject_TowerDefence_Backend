@@ -16,6 +16,8 @@ export class WSRouter {
         if(!handler){
             const responce: WSResponse = {code: 405, message:"wrong action"}
             ctx.ws.send(JSON.stringify(responce));
+
+            console.log("NO HANDLER FOR MESSAGE");
             return;
         }
 

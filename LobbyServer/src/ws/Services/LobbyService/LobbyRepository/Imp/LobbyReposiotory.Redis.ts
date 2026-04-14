@@ -35,19 +35,49 @@ export class Lobbyreposiory implements ILobbyRepository{
         await redis.del(`user:${userId}:lobby`);
     }
 
-    async getLobby(lobbyId: string): Promise<Lobby | null> {
-        const users = await this.getLobbyUsers(lobbyId);
-        if (users.length === 0) return null;
-
-        const host = await this.getLobbyHost(lobbyId);
-        if (!host) return null;
-
-        // создаём объект Lobby с текущим host и пользователями
-        const lobby = new Lobby(lobbyId, host);
-        lobby.users = users; // обновляем список пользователей, так как конструктор добавляет только host
-
-        return lobby;
+    async getLobbyInviteCode(lobbyId: string): Promise<string| null>{
+        return await redis.get(`lobby:${lobbyId}:inviteCode`);
     }
+
+    async getLobbyheaderImage(LobbyID:string):Promise<string|null>{
+        return await redis.get(`lobby:${LobbyID}:headerImage`);
+    }
+
+    async getLobbyNickName(LobbyID:string):Promise<string|null>{
+        return await redis.get(`lobby:${LobbyID}:hostName`);
+    }
+
+async getLobby(lobbyId: string): Promise<Lobby | null> {
+    const results = await redis.pipeline()
+        .smembers(`lobby:${lobbyId}:users`)
+        .get(`lobby:${lobbyId}:host`)
+        .get(`lobby:${lobbyId}:headerImage`)
+        .get(`lobby:${lobbyId}:inviteCode`)
+        .get(`lobby:${lobbyId}:hostName`)
+        .exec();
+
+    if (!results) return null;
+
+    const users = results[0]?.[1] as string[] ?? [];
+    const host = results[1]?.[1] as string | null;
+    const headerImage = results[2]?.[1] as string | null;
+    const inviteCode = results[3]?.[1] as string | null;
+    const hostName = results[4]?.[1] as string | null;
+
+    if (!host || !inviteCode) return null;
+
+    const lobby = new Lobby(
+        lobbyId,
+        host,
+        hostName ?? "",
+        inviteCode,
+        headerImage ?? ""
+    );
+
+    lobby.users = users;
+
+    return lobby;
+}
 
     async getUserLobbyObj(userId: string): Promise<Lobby | null> {
         const lobbyId = await this.getUserLobby(userId);

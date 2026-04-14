@@ -9,6 +9,9 @@ export const UpdateSession = async(ctx: WSContext, next:(err?: any) => void) => 
         try {
             const sessionId = ctx.sessionId; 
 
+            if(ctx.message?.action == 'ping'){
+                return next();
+            }
             console.log(sessionId);
             if (sessionId) {
                 await redis.expire(`session:${sessionId}`, 60 * 60 * 24 * 7); // продлеваем TTL на 7 дней

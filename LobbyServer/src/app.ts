@@ -14,6 +14,8 @@ import WSrouter from "./ws/Router/WSRouter";
 import { isValidSession } from "./ws/middleware/isValidSession";
 import { LobbyCleanupJob } from "./BG/lobbyCleanupJob";
 import { LobbyService } from "./ws/Services/LobbyService/Lobby.Service";
+import { ClientManager } from "./ws/modules/ClientManager";
+import { removeUserFromAllNotifiers } from "./ws/Services/NotifySustem/NotifySystem";
 
 const app = express();
 app.use(express.json());
@@ -28,6 +30,17 @@ const wss = new WebSocketServer({ server: httpServer });
 
 
 
+
+const clientManager = ClientManager.getInstance();
+setInterval(() => {
+    clientManager.forEach(ctx => {
+        if ((Date.now() - ctx.lastPing) > 90000) {
+            console.log("Disconect By serve, no ping");
+            ctx.ws.terminate();
+        }
+    });
+}, 10000);
+
 wss.on("connection", async (ws: WebSocket, req) =>{
     const ctx: WSContext = { ws,req };
 
@@ -36,6 +49,7 @@ wss.on("connection", async (ws: WebSocket, req) =>{
     ])
     console.log("User connected:", ctx.userId);
     (ws as any).userId = ctx.userId;
+    clientManager.addClient(ctx);
 
     ws.on("message",async (data)=>{
 
@@ -50,13 +64,19 @@ wss.on("connection", async (ws: WebSocket, req) =>{
         WSrouter.handle(ctx)
     })
 
-    ws.on("close", async ()=>{
+    ws.on("close", async () => {
         const userId = (ws as any).userId;
         if (!userId) return;
 
-       const lobbyservise: LobbyService = new LobbyService();
-       await lobbyservise.onDisconnect(userId);
-    })
+        const clientManager = ClientManager.getInstance();
+        clientManager.removeClient(userId);
+        removeUserFromAllNotifiers(userId);
+
+        console.log("DISCONNECT:", userId);
+
+        const lobbyService = new LobbyService();
+        await lobbyService.onDisconnect(userId);
+    });
 
     ws.on("error", (err) => { });
 

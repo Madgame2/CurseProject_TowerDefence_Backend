@@ -26,6 +26,7 @@ export class Player extends Model {
   public email!: string;
   public password!: string;
   public nickname!:string;
+  public headerImageSource!: string;
 }
 
 
@@ -48,6 +49,11 @@ Player.init(
     nickname:{
         type: DataTypes.STRING,
         allowNull: false,
+    },
+    headerImageSource:{
+      type: DataTypes.STRING,
+      allowNull:false,
+      defaultValue: "default"
     }
   },
   {

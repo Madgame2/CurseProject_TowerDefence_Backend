@@ -12,7 +12,6 @@ export const getMyLobby = async (ctx: WSContext) => {
         const userId = ctx.userId;
 
         const lobby = await lobbyService.GetUserLobbyObj(userId!);
-        console.log(lobby);
         
         if (!lobby) {
             const res: WSResponse = {
@@ -29,7 +28,6 @@ export const getMyLobby = async (ctx: WSContext) => {
             data:lobby,
             requestId: ctx.requestId
         }
-        console.log(res);
         ctx.ws.send(JSON.stringify(res));
     } catch (error) {
         console.error("Error in getMyLobby:", error);
