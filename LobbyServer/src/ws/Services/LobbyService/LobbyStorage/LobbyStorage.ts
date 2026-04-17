@@ -13,6 +13,7 @@ class LobbyStorage {
     private static instance: LobbyStorage;
 
     private lobbies = new Map<string, Lobby>();
+    private host_lobbies = new Map<string, Lobby>();
 
     private _isInit: Boolean = false;
 
@@ -50,6 +51,8 @@ class LobbyStorage {
             const newLobbyElem : Lobby = new Lobby(id,host,hostName!,inviteCode,headerImage!);
             newLobbyElem.users = users;
             this.lobbies.set(id, newLobbyElem);
+
+            this.host_lobbies.set(newLobbyElem.host!,newLobbyElem);
         }
 
         // 2. подписка
@@ -71,6 +74,8 @@ class LobbyStorage {
 
                     if (lobby) {
                         this.lobbies.set(event.lobbyId, lobby);
+
+                        this.host_lobbies.set(lobby.host!, lobby)
                     }
 
                     event.lobby = lobby
@@ -81,7 +86,10 @@ class LobbyStorage {
                 }
 
                 case "LOBBY_DELETED":
+
+                    const lobbyId = this.lobbies.get(event.lobbyId)!.id
                     this.lobbies.delete(event.lobbyId);
+                    this.host_lobbies.delete(lobbyId)
                     Notify(event);
                     break;
             }
@@ -96,6 +104,10 @@ class LobbyStorage {
 
     get(id: string): Lobby | undefined {
         return this.lobbies.get(id);
+    }
+
+    getByHost(id:string): Lobby | undefined{
+        return this.host_lobbies.get(id);
     }
 
     getAll(): Lobby[] {

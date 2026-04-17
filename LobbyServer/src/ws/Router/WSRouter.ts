@@ -11,6 +11,7 @@ import { SubScribeMyLobbyEvents } from "../events/SubScribeMyLobbyEvents";
 import { subscribeLobiesEvents } from "../events/SubScribeLobiesEvents"
 import { UnsubScribeMyLobbyEvents } from "../events/UnsubScribeMyLobbyEvents.event";
 import { UnubScribeLobiesEvents } from "../events/UnubScribeLobiesEvents.events";
+import { CancelRequest } from "../events/CancelsearchingSessionRequest";
 
 const WSrouter = new WSRouter();
 
@@ -23,7 +24,8 @@ WSrouter.on("ListOfLobby",GetListOfLobby)
 WSrouter.on("GetMyLobby",getMyLobby)
 WSrouter.on("GetAvailableLobbies", GetAvailableLobbies)
 
-WSrouter.on("StartSession",startSession)
+WSrouter.on("StartSession", startSession)
+WSrouter.on("CancelSearch", CancelRequest)
 
 WSrouter.on("Events/SubScribeMyLobbyEvents",SubScribeMyLobbyEvents);
 WSrouter.on("Events/SubScribeLobiesEvents",subscribeLobiesEvents);

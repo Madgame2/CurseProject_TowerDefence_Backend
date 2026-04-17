@@ -20,6 +20,33 @@ export class LobbyService{
     private uof = new UnitOfWork(redis);
     private lobyStorage = lobbyStorage
 
+    public async GetLobbyByHostId(HostId: string) :Promise<Lobby| null>{
+        const bufferedLobby = this.lobyStorage.getByHost(HostId);
+        if(bufferedLobby){
+            return  bufferedLobby;
+        }
+
+         const lobbyId = await redis.get(`user:${HostId}:lobby`);
+            if (!lobbyId) {
+                return null;
+            }
+        
+        const [host, inviteCode, hostName, headerImage] = await redis.mget([
+            `lobby:${lobbyId}:host`,
+            `lobby:${lobbyId}:inviteCode`,
+            `lobby:${lobbyId}:hostName`,
+            `lobby:${lobbyId}:headerImage`,
+        ]);
+
+        if (!host) {
+            return null;
+        }
+
+        const lobby: Lobby = new Lobby(lobbyId,host,hostName!,inviteCode!,headerImage!); 
+
+        return lobby;
+    }
+
     public async GetAvailableLobbys(userId:string):Promise<Lobby[]>{
 
         if(!this.lobyStorage.isInit){
@@ -130,13 +157,13 @@ export class LobbyService{
 
             // Сохраняем все данные в Redis через MULTI
             await this.uof.redisCommand(async (multi) => {
-                multi.set(`lobby:${newLobbyId}:host`, hadmaster);
-                multi.sadd(`lobby:${newLobbyId}:users`, hadmaster);
-                multi.set(`user:${hadmaster}:lobby`, newLobbyId);
-                multi.set(`lobby:${newLobbyId}:inviteCode`,inviteCode);
-                multi.set(`lobby:${newLobbyId}:hostName`,hadmasterProfile!.nickname);
-                multi.set(`lobby:${newLobbyId}:headerImage`,hadmasterProfile!.headerImageSource);
-                multi.set(`invite:${inviteCode}`, newLobbyId);
+                    multi.set(`lobby:${newLobbyId}:host`, hadmaster);
+                    multi.sadd(`lobby:${newLobbyId}:users`, hadmaster);
+                    multi.set(`user:${hadmaster}:lobby`, newLobbyId);
+                    multi.set(`lobby:${newLobbyId}:inviteCode`,inviteCode);
+                    multi.set(`lobby:${newLobbyId}:hostName`,hadmasterProfile!.nickname);
+                    multi.set(`lobby:${newLobbyId}:headerImage`,hadmasterProfile!.headerImageSource);
+                    multi.set(`invite:${inviteCode}`, newLobbyId);
 
                 multi.sadd("lobbies",newLobbyId);
                 await multi.exec(); // exec вызываем только один раз
@@ -201,34 +228,54 @@ export class LobbyService{
     }
     }
 
-public async onDisconnect(userId: string) {
-    try {
-        const lobbyId = await this.uof.lobby!.getUserLobby(userId);
+    public async onDisconnect(userId: string) {
+        try {
+            const lobbyId = await this.uof.lobby!.getUserLobby(userId);
 
-        if (!lobbyId) return;
+            if (!lobbyId) return;
 
-        const result = await LobbyLua.disconnectUser({
-            userId,
-            lobbyId
-        });
+            const result = await LobbyLua.disconnectUser({
+                userId,
+                lobbyId
+            });
 
-        if (result === 1) {
-        await LobbyEvents.publish({
-            type: "LOBBY_DELETED",
-            lobbyId,
-            lobby: null
-        })}
-        else{
-         await LobbyEvents.publish({
-            type: "LOBBY_UPDATED",
-            lobbyId: lobbyId,
-            lobby: null
-        })}
-        
-    } catch (e) {
-        console.error("Disconnect failed", e);
+            if (result === 1) {
+            await LobbyEvents.publish({
+                type: "LOBBY_DELETED",
+                lobbyId,
+                lobby: null
+            })}
+
+
+            const lastTaskId = await redis.get(`index:lobby:${lobbyId}:lastTask`);
+
+            if (lastTaskId) {
+                const taskKey = `mm:task:${lastTaskId}`;
+
+                // проверяем что задача существует
+                const exists = await redis.exists(taskKey);
+
+                if (exists) {
+                    const status = await redis.hget(taskKey, "status");
+
+                    // не перетираем уже выполненные задачи
+                    if (status === "queued") {
+                        await redis.hset(taskKey, "status", "cancelled");
+                    }
+                }
+            }
+
+            else{
+            await LobbyEvents.publish({
+                type: "LOBBY_UPDATED",
+                lobbyId: lobbyId,
+                lobby: null
+            })}
+            
+        } catch (e) {
+            console.error("Disconnect failed", e);
+        }
     }
-}
 
     public async handleLobbyLeaderLeaving(lobbyId: string, leavingUserId: string) {
         const lobby = await this.uof.lobby!.getLobby(lobbyId);
