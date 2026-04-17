@@ -16,7 +16,7 @@ export class MatchmakingWorker {
     async start(){
         
         while (true){
-            const taskId = this.redisClient.evalsha(
+            const taskId = await this.redisClient.evalsha(
                 this.rediScripts.takeTaskSha,
                 3,
                 "queue:matchmaking",
@@ -40,19 +40,23 @@ export class MatchmakingWorker {
         const dispatcherId = process.env.SERVER_NAME!;
         const heartbeat = this.startHeartbeat(taskId, dispatcherId);
 
-        await this.sleep(2000);
+        await this.processTask(taskId);
+    }
+
+    private async processTask(taskId: string){
+        await this.sleep(60000);
     }
 
     private startHeartbeat(taskId: string, dispatcherId: string) {
         const interval = setInterval(async () => {
             const lock = await this.redisClient.get(`task:${taskId}:lock`);
-
+            console.log(taskId);
             if (lock !== dispatcherId) {
                 clearInterval(interval);
                 return;
             }
 
-            await this.redisClient.expire(`task:${taskId}:lock`, 30);
+            await this.redisClient.expire(`task:${taskId}:lock`, 60);
         }, 500);
 
         return interval;
