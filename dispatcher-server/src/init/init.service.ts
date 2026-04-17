@@ -7,7 +7,7 @@ import { MatchmakingWorker } from "src/Search/MatchmakingWorker";
 @Injectable()
 export class InitService implements OnModuleInit{
 
-private dispatcherId = randomUUID();
+    private dispatcherId = randomUUID();
 
     
     constructor(
@@ -18,7 +18,7 @@ private dispatcherId = randomUUID();
 
 
     private async InitMacthMaking(){
-
+        this.mathcmaking.start();
     }
 
     private async InitRedis(){
@@ -60,5 +60,9 @@ private dispatcherId = randomUUID();
     async onModuleInit() {
         await this.InitRedis()
         await this.InitMacthMaking();
+    }
+
+    public getId():string{
+        return this.dispatcherId;
     }
 }

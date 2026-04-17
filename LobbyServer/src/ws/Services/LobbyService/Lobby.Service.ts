@@ -261,7 +261,11 @@ export class LobbyService{
                     // не перетираем уже выполненные задачи
                     if (status === "queued") {
                         await redis.hset(taskKey, "status", "cancelled");
+
+                        await redis.del(`index:lobby:${lobbyId}:lastTask`);
                     }
+                }else{
+                    await redis.del(`index:lobby:${lobbyId}:lastTask`);
                 }
             }
 
