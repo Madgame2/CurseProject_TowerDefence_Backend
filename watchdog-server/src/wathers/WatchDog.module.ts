@@ -5,6 +5,7 @@ import { WatchdogService } from "./WatchDog.Service";
 import { RedisMatchmackingWatcher } from "./matchMackingWatcher/matchmacking.wather";
 import { LuaScripts } from "src/redis/LuaScripts.service";
 import { WATCHERS } from "./tokens";
+import { SessionServerWatcher } from "./sessionServerWatcher/sessionServer.watcher";
 
 
 @Module({
@@ -15,13 +16,19 @@ import { WATCHERS } from "./tokens";
     providers: [
         WatchdogService,
         RedisMatchmackingWatcher,
-
+        SessionServerWatcher,
         {
             provide: WATCHERS,
-            useFactory: (matchmaking: RedisMatchmackingWatcher) => {
-                return [matchmaking];
+            useFactory: (
+                matchmaking: RedisMatchmackingWatcher,
+                session: SessionServerWatcher,
+            ) => {
+                return [
+                    matchmaking,
+                    session,
+                ];
             },
-            inject: [RedisMatchmackingWatcher],
+            inject: [RedisMatchmackingWatcher,SessionServerWatcher],
         }
     ],
 })

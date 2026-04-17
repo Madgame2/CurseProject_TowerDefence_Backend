@@ -3,4 +3,5 @@ export interface ServerConfig {
     host: string;
     port: number;
     maxLoad: number;
+    canAccept: boolean;
 }

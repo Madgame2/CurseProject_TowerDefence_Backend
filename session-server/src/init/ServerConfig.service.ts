@@ -12,6 +12,7 @@ export class ServerConfigService {
             host: this.configService.get<string>('HOST')!,
             port: Number(this.configService.get<number>('PORT')),
             maxLoad: Number(this.configService.get<number>('MAX_LOAD')),
+            canAccept: this.configService.get<boolean>("CAN_ACCEPT")!
         };
     }
 }

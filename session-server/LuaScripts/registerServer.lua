@@ -5,6 +5,7 @@ local serverId = ARGV[1]
 local host = ARGV[2]
 local port = ARGV[3]
 local maxLoad = ARGV[4]
+local canAccept = ARGV[5]
 
 -- если уже есть в set → ничего не делаем
 if redis.call("SISMEMBER", serverListKey, serverId) == 1 then
@@ -20,7 +21,8 @@ redis.call("HSET", serverHashKey,
     "port", port,
     "maxLoad", maxLoad,
     "currentLoad", "0",
-    "status", "online"
+    "status", "online",
+    "canAccept", canAccept
 )
 
 return 1

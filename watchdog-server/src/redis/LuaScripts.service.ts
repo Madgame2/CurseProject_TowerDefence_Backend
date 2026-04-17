@@ -9,6 +9,7 @@ import { RedisService } from "./redis.service";
 export class LuaScripts implements OnModuleInit {
 
   public returnToQeueueSha: string = "";
+  public deleteSessionServerSha: string = "";
 
   constructor(private readonly redisService: RedisService) {}
 
@@ -24,6 +25,12 @@ export class LuaScripts implements OnModuleInit {
       "utf-8"
     );
 
+    const deleteSessonServerScript = fs.readFileSync(
+      path.join(process.cwd(), "LuaScripts/DeleteSessionServer.lua"),
+      "utf-8"
+    );
+
     this.returnToQeueueSha = (await client.script("LOAD", script)) as string;
+    this.deleteSessionServerSha = (await client.script("LOAD", deleteSessonServerScript)) as string;
   }
 }

@@ -21,6 +21,7 @@ export class InitService implements OnModuleInit{
         const configs = this.configService.config;
         const serverId = configs.serverId;
 
+
         const result = await redisClient.evalsha(
             this.luaScripts.registerServerSha,
             2,
@@ -30,6 +31,7 @@ export class InitService implements OnModuleInit{
             configs.host,
             configs.port.toString(),
             configs.maxLoad.toString(),
+            String(configs.canAccept)
     );
 
     if (result === 1) {
