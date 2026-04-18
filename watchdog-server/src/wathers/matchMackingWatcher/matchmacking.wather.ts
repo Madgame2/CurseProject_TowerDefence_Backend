@@ -16,9 +16,12 @@ export class RedisMatchmackingWatcher implements IWatcher{
 
         await redisClient.evalsha(
             this.luaScripts.returnToQeueueSha,
-            2, // KEYS count
-            "queue:processing",
-            "queue:matchmaking"
+            4, // KEYS count
+
+            "queue:processing",        // KEYS[1]
+            "queue:matchmaking",       // KEYS[2]
+            "mm:task:",                // KEYS[3]
+            "lock:matchmaking:",       // KEYS[4]
         );
     }
 }

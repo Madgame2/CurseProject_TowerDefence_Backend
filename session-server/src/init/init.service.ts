@@ -14,6 +14,26 @@ export class InitService implements OnModuleInit{
         private readonly luaScripts: LuaScripts
     ){}
 
+    private startHeartbeat(serverId: string) {
+    const interval = 3000; // каждые 3 сек
+    const ttl = 20;        // живёт 10 сек
+
+    setInterval(async () => {
+        try {
+            const redisClient = await this.redisService.getClient();
+
+            await redisClient.set(
+                `server:${serverId}:alive`,
+                "1",
+                "EX",
+                 ttl
+            );
+
+        } catch (e) {
+            console.error("Heartbeat error", e);
+        }
+    }, interval).unref();
+}
 
     async onModuleInit() {
         const redisClient = await this.redisService.getClient();
@@ -39,5 +59,8 @@ export class InitService implements OnModuleInit{
     } else {
         console.log("Server already exists");
     }
+
+        this.startHeartbeat(serverId);
+
     }
 }

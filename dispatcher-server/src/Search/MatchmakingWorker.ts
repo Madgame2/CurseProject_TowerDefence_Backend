@@ -16,27 +16,36 @@ export class MatchmakingWorker {
     async start(){
         
         while (true){
-            const taskId = await this.redisClient.evalsha(
+            const result = await this.redisClient.evalsha(
                 this.rediScripts.takeTaskSha,
-                3,
-                "queue:matchmaking",
-                "queue:processing",
-                "task:",
-                process.env.SERVER_NAME,
-                "60"
-            )
+                4, // 👈 теперь 4 KEYS
 
+                "queue:matchmaking",      // KEYS[1]
+                "queue:processing",       // KEYS[2]
+                "lock:matchmaking:",      // KEYS[3] (prefix)
+                "mm:task:",                  // KEYS[4] (task prefix)
 
-            if(!taskId){
+                process.env.SERVER_NAME,  // ARGV[1] dispatcherId
+                "60",                     // ARGV[2] ttl
+
+                "queued",               // ARGV[3] expected status
+                "PROCESSING"             // ARGV[4] new status
+            );
+
+            console.log(result);
+
+            if(!result){
                 await this.sleep(1000);
                 continue;
             }
 
-            await this.handleJob(taskId)
+            await this.handleJob(result[1])
         }
     }
 
     private async handleJob(taskId: string) {
+
+        console.log(taskId as string);
         const dispatcherId = process.env.SERVER_NAME!;
         const heartbeat = this.startHeartbeat(taskId, dispatcherId);
 
@@ -45,19 +54,66 @@ export class MatchmakingWorker {
 
     private async processTask(taskId: string){
         await this.sleep(60000);
+
+        console.log("ВЫПОЛНИЛ ЗАДАЧУ")
+        const [ok, result] = await this.redisClient.evalsha(
+            this.rediScripts.serverRadykSha,
+            2,
+            `mm:task:${taskId}`,
+            "stream:session-ready",
+            "PROCESSING",
+            "READY",
+            "sessionIdPrefab",
+            "serverIpPrefab",
+            "PortPrefab"
+        )
+
+        if(ok){
+
+            console.log(result);
+        }else{
+            const status = result;
+
+            if (status === "CANCELLED") {
+                // можно удалить задачу или проигнорить
+            }
+
+            if (status === "READY") {
+                // уже выполнено → просто игнор
+            }
+
+        }
     }
 
     private startHeartbeat(taskId: string, dispatcherId: string) {
-        const interval = setInterval(async () => {
-            const lock = await this.redisClient.get(`task:${taskId}:lock`);
-            console.log(taskId);
-            if (lock !== dispatcherId) {
-                clearInterval(interval);
-                return;
-            }
+        const lockKey = `lock:matchmaking:${taskId}`;
 
-            await this.redisClient.expire(`task:${taskId}:lock`, 60);
-        }, 500);
+        console.log(lockKey);
+        const interval = setInterval(async () => {
+            try {
+                const result = await this.redisClient.eval(
+                    `
+                    if redis.call("GET", KEYS[1]) == ARGV[1] then
+                        return redis.call("EXPIRE", KEYS[1], ARGV[2])
+                    else
+                        return 0
+                    end
+                    `,
+                    1,
+                    lockKey,
+                    dispatcherId,
+                    60
+                );
+
+                // если мы больше не владелец lock — останавливаем heartbeat
+                if (result === 0) {
+                    clearInterval(interval);
+                }
+
+            } catch (err) {
+                clearInterval(interval);
+            }
+        }, 20000);
 
         return interval;
     }
