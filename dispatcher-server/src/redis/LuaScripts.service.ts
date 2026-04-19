@@ -31,7 +31,7 @@ export class LuaScripts implements OnModuleInit {
     );
 
     const getLobbyUsersServersScript = fs.readFileSync(
-      path.join(process.cwd(), "LuaScripts/serverReadyReccords.lua"),
+      path.join(process.cwd(), "LuaScripts/getServersByLobby.lua"),
       "utf-8"
     );
 

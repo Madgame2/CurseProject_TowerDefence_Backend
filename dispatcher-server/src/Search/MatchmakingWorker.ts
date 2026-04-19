@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { LuaScripts } from "src/redis/LuaScripts.service";
 import { RedisService } from "src/redis/redis.service";
+import { SessionServerRedisRecord } from "src/types/sessionServerRedisrecord";
 
 @Injectable()
 export class MatchmakingWorker {
@@ -52,11 +53,45 @@ export class MatchmakingWorker {
         await this.processTask(taskId);
     }
 
-    private async processTask(taskId: string){
-        await this.sleep(60000);
+private GetServerWithLessPrecentOFOccupancy(
+    servers: SessionServerRedisRecord[]
+): SessionServerRedisRecord | null {
 
-        console.log("ВЫПОЛНИЛ ЗАДАЧУ")
-       const [ok, status, lobbyId] = await this.redisClient.evalsha(
+    let bestServer: SessionServerRedisRecord | null = null;
+    let lowestLoad = Infinity;
+
+    for (const server of servers) {
+
+        if (!server.canAccept) continue;
+        if (server.status !== "online") continue;
+        if (server.maxLoad <= 0) continue;
+
+        const loadPercent = server.currentLoad / server.maxLoad;
+
+        if (loadPercent < lowestLoad) {
+            lowestLoad = loadPercent;
+            bestServer = server;
+        }
+    }
+
+    return bestServer;
+}
+
+    private async processTask(taskId: string) {
+        await this.sleep(30000);
+
+        const serverArray = await this.loadServers();
+
+        const bestServer = this.GetServerWithLessPrecentOFOccupancy(serverArray);
+
+        if (!bestServer) {
+            console.warn("No available server found");
+            return;
+        }
+
+        console.log("ВЫПОЛНИЛ ЗАДАЧУ");
+
+        const [ok, status, lobbyId] = await this.redisClient.evalsha(
             this.rediScripts.serverRadykSha,
             4,
             `mm:task:${taskId}`,
@@ -66,46 +101,88 @@ export class MatchmakingWorker {
 
             "PROCESSING",
             "READY",
-            "sessionIdPrefab",
-            "serverIpPrefab",
-            "PortPrefab"
+            bestServer.serverId,
+            bestServer.host,
+            String(bestServer.port)
         );
 
         console.log(ok, lobbyId);
 
-        if (ok) {
-            const [servers, users] = await this.redisClient.evalsha(
-                this.rediScripts.getLobbyUsersServersSha,
-                2,
-                `lobby:${lobbyId}:users`,
-                "user:"
-            );
+        if (!ok) {
+            this.handleTaskFailure(taskId, status);
+            return;
+        }
 
-            const sessionInfo = {
-                host: "prefab",
-                port: "tempPort",
-                passToken: "prefabToken",
-                lobbyId,
-                users
-            };
+        await this.notifyLobby(lobbyId, bestServer);
+    }
 
-            const payload = JSON.stringify(sessionInfo);
+    private async loadServers(): Promise<SessionServerRedisRecord[]> {
+        const serverIds = await this.redisClient.smembers(`servers:list`);
 
-            for (const server of servers) {
-                await this.redisClient.publish(`session-ready:${server}`, payload);
-            }
+        if (!serverIds.length) return [];
 
-        } else {
-            if (status === "CANCELLED") {
-                // можно логировать
-                console.warn(`Task ${taskId} was cancelled`);
-            }
+        const pipeline = this.redisClient.pipeline();
 
-            if (status === "READY") {
-                // уже выполнено → норм ситуация (идемпотентность)
-            }
+        for (const id of serverIds) {
+            pipeline.hgetall(`server:${id}`);
+        }
+
+        const results = await pipeline.exec();
+
+        return results
+            .map(([err, data], i) => {
+                if (err || !data) return null;
+
+                return {
+                    serverId: serverIds[i],
+                    host: data.host,
+                    port: Number(data.port),
+                    maxLoad: Number(data.maxLoad),
+                    currentLoad: Number(data.currentLoad),
+                    status: data.status,
+                    canAccept: data.canAccept === "1" || data.canAccept === "true"
+                } as SessionServerRedisRecord;
+            })
+            .filter(Boolean) as SessionServerRedisRecord[];
+    }
+
+
+    private handleTaskFailure(taskId: string, status: string) {
+        if (status === "CANCELLED") {
+            console.warn(`Task ${taskId} was cancelled`);
+            return;
+        }
+
+        if (status === "READY") {
+            return; // идемпотентно уже обработано
         }
     }
+    private async notifyLobby(lobbyId: string, server: SessionServerRedisRecord) {
+    const [servers, users] = await this.redisClient.evalsha(
+        this.rediScripts.getLobbyUsersServersSha,
+        2,
+        `lobby:${lobbyId}:users`,
+        "user:"
+    );
+
+    const sessionInfo = {
+        host: server.host,
+        port: server.port,
+        passToken: "prefabToken",
+        lobbyId,
+        users
+    };
+
+    const payload = JSON.stringify(sessionInfo);
+
+    for (const server of servers) {
+        await this.redisClient.publish(
+            `DespatchNotification:${server}`,
+            payload
+        );
+    }
+}
+
 
     private startHeartbeat(taskId: string, dispatcherId: string) {
         const lockKey = `lock:matchmaking:${taskId}`;

@@ -16,12 +16,14 @@ export class ClientManager {
     }
 
     async addClient(ctx: WSContext) {
-        await redis.set(`user:${ctx.userId!}:server`, process.env.SERVER_ID!)
-        this.clients.set(ctx.userId!, ctx);
+        const userId = String(ctx.userId);
+
+        await redis.set(`user:${userId}:server`, process.env.SERVER_ID!);
+        this.clients.set(userId, ctx);
     }
 
     get(userId: string): WSContext | null {
-        return this.clients.get(userId) ?? null;
+        return this.clients.get(String(userId)) ?? null;
     }
 
     async removeClient(userId: string) {

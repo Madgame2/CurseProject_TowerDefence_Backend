@@ -7,6 +7,7 @@ export interface WSContext {
     ws: WebSocket;
     req: IncomingMessage;
 
+    userState?: string;
     userId?: string;
     sessionId?: string;
 
@@ -14,6 +15,7 @@ export interface WSContext {
     rawMessage?: string;
     
     [key: string]: any; // можно расширять под игру
+
 }
 
 // Middleware тип

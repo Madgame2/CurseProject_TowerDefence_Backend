@@ -15,13 +15,14 @@ export class StreamConsumerService{
     }
 
 async startConsumer() {
-    const channel = `session-ready:${process.env.SERVER_ID}`;
+    const channel = `DespatchNotification:${process.env.SERVER_ID}`;
 
     await this.redisClinet.subscribe(channel);
 
-    const handler = async (incomingChannel: string, data: string) => {
+    const handler = async (incomingChannel: string, data: string) => { 
         if (incomingChannel !== channel) return;
 
+        console.log(data);
         let event;
         try {
             event = JSON.parse(data);
@@ -43,12 +44,16 @@ async startConsumer() {
 
         const payload = JSON.stringify(response);
 
+        console.log(event.users);
         for (const user of event.users) {
+            console.log(user);
             const client = this.clientManager.get(user);
+
 
             if (!client?.ws) continue;
 
             try {
+                console.log(payload);
                 client.ws.send(payload);
             } catch (e) {
                 console.error(`Failed to send to user ${user}`, e);
