@@ -1,15 +1,8 @@
 import { Lobby } from "../../../types/Lobby"
 import Redis from "ioredis";
 import { redis, redisSub } from "../../../../config/redis.config";
-import { LobbyEvent } from "../../../types/LobbyEvent";
-import { ILobbyRepository } from "../LobbyRepository/ILobbyRepository";
-import { Lobbyreposiory } from "../LobbyRepository/Imp/LobbyReposiotory.Redis";
-
-import { Notify } from "../../NotifySustem/NotifySystem";
 
 class LobbyStorage {
-
-    private _lobRep : ILobbyRepository = new Lobbyreposiory
     private static instance: LobbyStorage;
 
     private lobbies = new Map<string, Lobby>();
@@ -31,75 +24,67 @@ class LobbyStorage {
     }
 
     async init() {
-        // 1. загрузка
+        await this.loadLobbies();
+
+        this._isInit = true;
+    }
+
+    private async loadLobbies() {
         const ids = await this.redis.smembers("lobbies");
 
         for (const id of ids) {
-            const [host, inviteCode, users, headerImage, hostName] = await Promise.all([
-                this.redis.get(`lobby:${id}:host`),
-                this.redis.get(`lobby:${id}:inviteCode`),
-                this.redis.smembers(`lobby:${id}:users`),
-                this.redis.get(`lobby:${id}:headerImage`),
-                this.redis.get(`lobby:${id}:hostName`)
-            ]);
+            const data = await this.loadLobbyData(id);
+            if (!data) continue;
 
-            if (!host || !inviteCode) {
-                console.warn(`Lobby ${id} is corrupted, skipping`);
-                continue;
-            }
+            const lobby = this.createLobbyFromData(id, data);
 
-            const newLobbyElem : Lobby = new Lobby(id,host,hostName!,inviteCode,headerImage!);
-            newLobbyElem.users = users;
-            this.lobbies.set(id, newLobbyElem);
+            this.lobbies.set(id, lobby);
+            this.host_lobbies.set(lobby.host!, lobby);
+        }
+    }
 
-            this.host_lobbies.set(newLobbyElem.host!,newLobbyElem);
+    private async loadLobbyData(id: string) {
+        const [host, inviteCode, users, headerImage, hostName] = await Promise.all([
+            this.redis.get(`lobby:${id}:host`),
+            this.redis.get(`lobby:${id}:inviteCode`),
+            this.redis.smembers(`lobby:${id}:users`),
+            this.redis.get(`lobby:${id}:headerImage`),
+            this.redis.get(`lobby:${id}:hostName`)
+        ]);
+
+        if (!host || !inviteCode) {
+            console.warn(`Lobby ${id} is corrupted, skipping`);
+            return null;
         }
 
-        // 2. подписка
-        await this.sub.subscribe("lobby_updates");
+        return { host, inviteCode, users, headerImage, hostName };
+    }
 
-        this.sub.on("message", async (_, message) => {
-            const event: LobbyEvent = JSON.parse(message);
+    private createLobbyFromData(id: string, data: any): Lobby {
+        const lobby = new Lobby(
+            id,
+            data.host,
+            data.hostName ?? "",
+            data.inviteCode,
+            data.headerImage ?? ""
+        );
 
-            if (!event.lobbyId) return;
+        lobby.users = data.users ?? [];
 
-            console.log("MessageFrom redis", event);
-            switch (event.type) {
-                case "LOBBY_CREATED":
-                case "LOBBY_UPDATED": {
-                    let lobby =
-                        event.lobby ??
-                        this.lobbies.get(event.lobbyId) ??
-                        await this._lobRep.getLobby(event.lobbyId);
+        return lobby;
+    }
 
-                    if (lobby) {
-                        this.lobbies.set(event.lobbyId, lobby);
-
-                        this.host_lobbies.set(lobby.host!, lobby)
-                    }
-
-                    event.lobby = lobby
-
-                    Notify(event);
-
-                    return;
-                }
-
-                case "LOBBY_DELETED":
-
-                    const lobbyId = this.lobbies.get(event.lobbyId)!.id
-                    this.lobbies.delete(event.lobbyId);
-                    this.host_lobbies.delete(lobbyId)
-                    Notify(event);
-                    break;
-            }
-
-            
-        });
-
-        this.sub.on("error", console.error);
-
-        this._isInit = true
+    delete(lobbyId:string){
+        const lobby = this.lobbies.get(lobbyId);
+        if (!lobby) return;
+        
+        this.lobbies.delete(lobbyId);
+        this.host_lobbies.delete(lobby.host!);
+    }
+    
+    set(lobbyId:string, lobby:Lobby){
+        this.lobbies.set(lobbyId, lobby);
+        this.host_lobbies.set(lobby.host!, lobby);
     }
 
     get(id: string): Lobby | undefined {

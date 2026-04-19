@@ -2,7 +2,7 @@ import { UserAlreadInLobbyException } from "../../Exceptions/UserAlreadyInLobbyE
 import { ILobbyRepository } from "./LobbyRepository/ILobbyRepository"
 import crypto from "crypto";
 import { UnitOfWork } from "../../../services/UnitOfWork/UnitOfWork";
-import { redis } from "../../../config/redis.config";
+import { redis, redisSub } from "../../../config/redis.config";
 import { LobbyNotFoundException } from "../../Exceptions/LobbyNotFoundException";
 import { LobbyFullException } from "../../Exceptions/LobbyFullException";
 import { Lobby } from "../../types/Lobby";
@@ -12,13 +12,114 @@ import { LobbyUser } from "../../types/LobbyUser";
 import { lobbyStorage } from "./LobbyStorage/LobbyStorage";
 import { LobbyLua } from "../../../redis/lobbyLua";
 import { LobbyEvents } from "../NotifySustem/Events/LobbyEvents";
+import { channel } from "diagnostics_channel";
+import { LobbyEventBus } from "./LobbyEventBus";
+import { LobbyEvent } from "../../types/LobbyEvent";
 
+import { Notify } from "../NotifySustem/NotifySystem";
+import { ClientManager } from "../../modules/ClientManager";
+import { WSResponse } from "../../../types/WSResponse";
 
 export class LobbyService{
 
+
+    private clientMannager:ClientManager | null = null;
     private lobbyrep:ILobbyRepository = new Lobbyreposiory();
+    private eventBus: LobbyEventBus = new LobbyEventBus(redisSub)
     private uof = new UnitOfWork(redis);
     private lobyStorage = lobbyStorage
+
+
+    async init(clientMannager:ClientManager) {
+
+        this.clientMannager = clientMannager;
+        await this.lobyStorage.init();
+        await this.eventBus.init(this.handleMessage.bind(this));
+    }
+
+    private async handleMessage(channel: string, message: string) {
+        const event: LobbyEvent = JSON.parse(message);
+
+        if (channel === "lobby_updates") {
+            await this.handleUpdate(event);
+        }
+
+        if (channel === "lobby_runtime") {
+            await this.handleRuntime(event);
+        }
+    }
+
+    private async handleRuntime(event:LobbyEvent){
+        switch (event.type){
+            case "LOBBY_STATE_UPDATE":
+            const users = this.lobyStorage.get(event.lobbyId)?.users;
+            this.notifyUsersAboutLobbyStateUpdate(users!, event.state)
+        }
+    }
+
+    private notifyUsersAboutLobbyStateUpdate(users: string[], newState:string){
+        for(var user of users){
+            const client = this.clientMannager?.get(user);
+
+            const res: WSResponse = {
+                code: 200,
+                action: "Lobby_updates",
+                data: {
+                    type: "STATE_UPDATE",
+                    state: newState
+                }
+            }
+            client?.ws.send(JSON.stringify(res))
+        }
+    }
+
+    private async handleUpdate(event:LobbyEvent){
+        if (!event.lobbyId) return;
+
+        console.log("MessageFrom redis", event);
+
+        switch (event.type) {
+            case "LOBBY_CREATED":
+                await this.handleLobbyCreated(event);
+                break;
+
+            case "LOBBY_UPDATED":
+                await this.handleLobbyUpdated(event);
+                break;
+
+            case "LOBBY_DELETED":
+                await this.handleLobbyDeleted(event);
+                break;
+        }
+    }
+
+    private async handleLobbyCreated(event: LobbyEvent) {
+
+        await this.handleLobbyUpdated(event);
+    }
+
+    private async handleLobbyUpdated(event: LobbyEvent) {
+        let lobby =
+            event.lobby ??
+            this.lobyStorage.get(event.lobbyId) ??
+            await this.lobbyrep.getLobby(event.lobbyId);
+
+        if (!lobby) return;
+
+        this.lobyStorage.set(event.lobbyId, lobby);
+
+        event.lobby = lobby;
+
+        Notify(event);
+    }
+
+    private async handleLobbyDeleted(event: LobbyEvent) {
+        this.lobyStorage.delete(event.lobbyId)
+
+        Notify(event);
+    }
+
+
 
     public async GetLobbyByHostId(HostId: string) :Promise<Lobby| null>{
         const bufferedLobby = this.lobyStorage.getByHost(HostId);
@@ -310,3 +411,6 @@ export class LobbyService{
     }
 }
 
+const lobbyService = new LobbyService
+
+export default lobbyService;

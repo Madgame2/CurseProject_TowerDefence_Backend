@@ -13,23 +13,38 @@ import { parseMessage } from "./ws/middleware/parseMessageMiddleware";
 import WSrouter from "./ws/Router/WSRouter";
 import { isValidSession } from "./ws/middleware/isValidSession";
 import { LobbyCleanupJob } from "./BG/lobbyCleanupJob";
-import { LobbyService } from "./ws/Services/LobbyService/Lobby.Service";
+import lobbyService from "./ws/Services/LobbyService/Lobby.Service";
 import { ClientManager } from "./ws/modules/ClientManager";
 import { removeUserFromAllNotifiers } from "./ws/Services/NotifySustem/NotifySystem";
+import { StreamConsumerService } from "./ws/Services/StreamConsumerService/StreamConsumerService";
+import { redis,redisSub } from "./config/redis.config";
+import { LobbyServerRegistry } from "./ws/Services/LobbyServerInitService/LobbyServerInitService";
+
+
+const serverId = process.env.SERVER_ID || "lobby-1";
 
 const app = express();
+
+const registry = new LobbyServerRegistry(redis, {
+  serverId,
+  host: "127.0.0.1",
+  port: Number(process.env.PORT || 3000),
+});
+
+
+
+
 app.use(express.json());
 app.use(router);
 
 const cleanupJob = new LobbyCleanupJob();
 cleanupJob.start();
 
+registry.init();
+
 const httpServer = createServer(app);
 
 const wss = new WebSocketServer({ server: httpServer });
-
-
-
 
 const clientManager = ClientManager.getInstance();
 setInterval(() => {
@@ -40,6 +55,11 @@ setInterval(() => {
         }
     });
 }, 10000);
+const consumer = new StreamConsumerService(redisSub,clientManager);
+
+consumer.startConsumer()
+lobbyService.init(clientManager)
+
 
 wss.on("connection", async (ws: WebSocket, req) =>{
     const ctx: WSContext = { ws,req };
@@ -47,9 +67,11 @@ wss.on("connection", async (ws: WebSocket, req) =>{
     await runMiddlewares(ctx,[
         wsAuth
     ])
+
+
     console.log("User connected:", ctx.userId);
     (ws as any).userId = ctx.userId;
-    clientManager.addClient(ctx);
+    await clientManager.addClient(ctx);
 
     ws.on("message",async (data)=>{
 
@@ -69,12 +91,12 @@ wss.on("connection", async (ws: WebSocket, req) =>{
         if (!userId) return;
 
         const clientManager = ClientManager.getInstance();
-        clientManager.removeClient(userId);
+        await clientManager.removeClient(userId);
         removeUserFromAllNotifiers(userId);
 
         console.log("DISCONNECT:", userId);
 
-        const lobbyService = new LobbyService();
+
         await lobbyService.onDisconnect(userId);
     });
 
@@ -86,5 +108,10 @@ wss.on("connection", async (ws: WebSocket, req) =>{
     }
     ws.send(JSON.stringify(response));
 })
+
+process.on("SIGINT", async () => {
+  await registry.shutdown();
+  process.exit(0);
+});
 
 export { app, httpServer, wss };

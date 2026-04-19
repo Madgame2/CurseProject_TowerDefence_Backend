@@ -2,6 +2,8 @@ import { WSResponse } from "../../types/WSResponse";
 import { MatchMakingSchema } from "../dto/MatchMakingRequestDTO";
 import { SessionSearchService } from "../Services/SessionSerachService/SessionSerachService";
 import { WSContext } from "../types/WSContext";
+import { redis } from "../../config/redis.config";
+import { LobbyEvent } from "../types/LobbyEvent";
 
 export const startSession = async (ctx: WSContext) => {
     const sessionSearchService = new SessionSearchService();
@@ -21,6 +23,12 @@ export const startSession = async (ctx: WSContext) => {
             data: result
         }));
 
+        const event :LobbyEvent = {type: "LOBBY_STATE_UPDATE", 
+            lobbyId: result.lobbyId,
+            lobby: null,
+            state: "IN_SEARCH"
+        }
+        await redis.publish("lobby_runtime", JSON.stringify(event));
     } catch (err: any) {
         // 1. DTO validation (Zod)
         if (err?.name === "ZodError") {

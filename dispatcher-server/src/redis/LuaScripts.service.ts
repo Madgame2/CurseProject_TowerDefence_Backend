@@ -9,6 +9,7 @@ import { RedisService } from "./redis.service";
 export class LuaScripts implements OnModuleInit {
   public takeTaskSha: string = "";
   public serverRadykSha: string = "";
+  public getLobbyUsersServersSha: string ="";
 
   constructor(private readonly redisService: RedisService) {}
 
@@ -29,7 +30,13 @@ export class LuaScripts implements OnModuleInit {
       "utf-8"
     );
 
+    const getLobbyUsersServersScript = fs.readFileSync(
+      path.join(process.cwd(), "LuaScripts/serverReadyReccords.lua"),
+      "utf-8"
+    );
+
     this.takeTaskSha = (await client.script("LOAD", script)) as string;
     this.serverRadykSha = (await client.script("LOAD", ServerReadyScript)) as string;
+    this.getLobbyUsersServersSha = (await client.script("LOAD", getLobbyUsersServersScript)) as string;
   }
 }

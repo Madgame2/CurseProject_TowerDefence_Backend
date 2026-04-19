@@ -1,5 +1,6 @@
 import WebSocket from "ws";
 import { WSContext } from "../types/WSContext";
+import { redis } from "../../config/redis.config";
 
 export class ClientManager {
     private static instance: ClientManager;
@@ -14,7 +15,8 @@ export class ClientManager {
         return ClientManager.instance;
     }
 
-    addClient(ctx: WSContext) {
+    async addClient(ctx: WSContext) {
+        await redis.set(`user:${ctx.userId!}:server`, process.env.SERVER_ID!)
         this.clients.set(ctx.userId!, ctx);
     }
 
@@ -22,7 +24,8 @@ export class ClientManager {
         return this.clients.get(userId) ?? null;
     }
 
-    removeClient(userId: string) {
+    async removeClient(userId: string) {
+        await redis.del(`user:${userId!}:server`);
         this.clients.delete(userId);
     }
 

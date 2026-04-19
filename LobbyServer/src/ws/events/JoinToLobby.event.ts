@@ -1,11 +1,10 @@
 import { WSContext } from "../types/WSContext";
-import { LobbyService } from "../Services/LobbyService/Lobby.Service";
+import lobbyService from "../Services/LobbyService/Lobby.Service";
 
 
 
 export const JoinToLobby = async (ctx:WSContext)=>{
     const payload = ctx.message?.payload;
-    const lobbyService = new LobbyService();
 
     if (!payload || typeof payload.newLobbyId !== "string") {
         const response = { code: 400, message: "Invalid payload" };

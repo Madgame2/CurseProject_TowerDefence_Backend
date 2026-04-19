@@ -2,13 +2,10 @@ import { WSResponse } from "../../types/WSResponse";
 import { WSContext } from "../types/WSContext";
 import { redis } from "../../config/redis.config";
 import { Lobbyreposiory } from "../Services/LobbyService/LobbyRepository/Imp/LobbyReposiotory.Redis";
-import { LobbyService } from "../Services/LobbyService/Lobby.Service";
+import lobbyService from "../Services/LobbyService/Lobby.Service";
 import { Lobby } from "../types/Lobby";
 
 export const GetAvailableLobbies = async (ctx:WSContext)=>{
-
-    const lobbyService = new LobbyService
-
     try{
         console.log("Start Searching");
         const availabelLobbys:Lobby[] = await lobbyService.GetAvailableLobbys(ctx.userId!);

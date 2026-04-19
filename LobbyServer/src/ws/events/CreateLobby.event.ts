@@ -1,12 +1,11 @@
 import { WSContext } from "../types/WSContext";
-import { LobbyService } from "../Services/LobbyService/Lobby.Service";
+import lobbyService from "../Services/LobbyService/Lobby.Service";
 import { WSResponse } from "../../types/WSResponse";
 import { UserAlreadInLobbyException } from "../Exceptions/UserAlreadyInLobbyException";
 import { LobbyEvents } from "../Services/NotifySustem/Events/LobbyEvents";
 
 
 export const CreateLobby = async (ctx: WSContext) => {
-    const lobbyService = new LobbyService();
 
     try {
         console.log("requestID: ", ctx.requestId)

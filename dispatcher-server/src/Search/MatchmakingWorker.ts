@@ -56,32 +56,54 @@ export class MatchmakingWorker {
         await this.sleep(60000);
 
         console.log("ВЫПОЛНИЛ ЗАДАЧУ")
-        const [ok, result] = await this.redisClient.evalsha(
+       const [ok, status, lobbyId] = await this.redisClient.evalsha(
             this.rediScripts.serverRadykSha,
-            2,
+            4,
             `mm:task:${taskId}`,
             "stream:session-ready",
+            "queue:processing",
+            "lock:matchmaking:",
+
             "PROCESSING",
             "READY",
             "sessionIdPrefab",
             "serverIpPrefab",
             "PortPrefab"
-        )
+        );
 
-        if(ok){
+        console.log(ok, lobbyId);
 
-            console.log(result);
-        }else{
-            const status = result;
+        if (ok) {
+            const [servers, users] = await this.redisClient.evalsha(
+                this.rediScripts.getLobbyUsersServersSha,
+                2,
+                `lobby:${lobbyId}:users`,
+                "user:"
+            );
 
+            const sessionInfo = {
+                host: "prefab",
+                port: "tempPort",
+                passToken: "prefabToken",
+                lobbyId,
+                users
+            };
+
+            const payload = JSON.stringify(sessionInfo);
+
+            for (const server of servers) {
+                await this.redisClient.publish(`session-ready:${server}`, payload);
+            }
+
+        } else {
             if (status === "CANCELLED") {
-                // можно удалить задачу или проигнорить
+                // можно логировать
+                console.warn(`Task ${taskId} was cancelled`);
             }
 
             if (status === "READY") {
-                // уже выполнено → просто игнор
+                // уже выполнено → норм ситуация (идемпотентность)
             }
-
         }
     }
 

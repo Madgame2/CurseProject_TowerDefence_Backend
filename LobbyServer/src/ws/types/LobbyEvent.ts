@@ -16,4 +16,10 @@ export type LobbyEvent =
         type: "LOBBY_DELETED";
         lobby: Lobby | null;
         lobbyId: string;
+    })
+    | (IEvent & {
+        type: "LOBBY_STATE_UPDATE";
+        lobby: Lobby | null;
+        lobbyId: string;
+        state: string
     });
