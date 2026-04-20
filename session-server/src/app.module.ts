@@ -9,6 +9,7 @@ import { EntryPointModule } from './EntryPoint/EntryPoint.module';
 import { ServerStateService } from './ServerStateModule/ServerState.Service';
 import { SessionModule } from './sessions/sessions.module';
 import { ServerStateModule } from './ServerStateModule/ServerState.module';
+import { MiddlewareModule } from './ws/Midleware/midleware.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
@@ -19,7 +20,9 @@ import { ServerStateModule } from './ServerStateModule/ServerState.module';
     ClientRegistryModule,
     EntryPointModule,
     SessionModule,
-    ServerStateModule],
+    ServerStateModule,
+    LiveHeatBeatModule,
+    MiddlewareModule,],
   controllers: [],
   providers: [WsGateway],
 })

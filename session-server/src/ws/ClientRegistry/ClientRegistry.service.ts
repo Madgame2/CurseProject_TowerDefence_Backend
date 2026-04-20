@@ -1,11 +1,12 @@
 import { Injectable } from "@nestjs/common";
+import { WSContext } from "../Types/WsContext";
 
 
 @Injectable()
 export class ClientRegistryService{
-   private clients = new Map<string, any>(); // лучше типизировать
+   private clients = new Map<string, WSContext>(); // лучше типизировать
 
-  addClient(userId: string, client: any) {
+  addClient(userId: string, client: WSContext) {
     this.clients.set(userId, client);
   }
 
