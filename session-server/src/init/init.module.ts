@@ -7,6 +7,6 @@ import { RedisModule } from "src/redis/redis.module";
 @Module({
     imports: [RedisModule],
     providers: [InitService, ServerConfigService],
-    exports: [InitService, ServerConfigService]
+    exports: [ServerConfigService]
 })
 export class InitModule{}

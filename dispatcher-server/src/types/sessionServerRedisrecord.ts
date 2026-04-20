@@ -6,6 +6,6 @@ export type SessionServerRedisRecord ={
     port: number,
     maxLoad: number,
     currentLoad: number,
-    status: "online" | "sleep" | "offline" | "ERROR",
+    status: "ONLINE" | "sleep" | "OFFLINE" | "ERROR",
     canAccept: boolean
 }

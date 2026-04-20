@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { ServerConfig } from "src/types/ServerConfig";
+import { serverStatus } from "src/types/serverStatuses.enum";
 
 @Injectable()
 export class ServerConfigService {
@@ -12,7 +13,10 @@ export class ServerConfigService {
             host: this.configService.get<string>('HOST')!,
             port: Number(this.configService.get<number>('PORT')),
             maxLoad: Number(this.configService.get<number>('MAX_LOAD')),
-            canAccept: this.configService.get<boolean>("CAN_ACCEPT")!
+            
+            canAccept: this.configService.get<string>("CAN_ACCEPT") === "true",
+
+            status: this.configService.get<string>("SERVER_STATUS") as serverStatus,
         };
     }
 }

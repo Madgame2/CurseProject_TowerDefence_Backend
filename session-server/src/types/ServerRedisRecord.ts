@@ -1,3 +1,4 @@
+import { serverStatus } from "./serverStatuses.enum"
 
 
 export type ServerRedisRecord ={
@@ -5,6 +6,6 @@ export type ServerRedisRecord ={
     port: number,
     maxLoad: number,
     currentLoad: number,
-    status: "online" | "sleep" | "offline" | "ERROR",
+    status: serverStatus
     canAccept: boolean
 }

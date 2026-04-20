@@ -1,7 +1,9 @@
 import { Injectable } from "@nestjs/common";
+import axios from "axios";
 import { LuaScripts } from "src/redis/LuaScripts.service";
 import { RedisService } from "src/redis/redis.service";
 import { SessionServerRedisRecord } from "src/types/sessionServerRedisrecord";
+import { json } from "zod";
 
 @Injectable()
 export class MatchmakingWorker {
@@ -45,52 +47,154 @@ export class MatchmakingWorker {
     }
 
     private async handleJob(taskId: string) {
+        console.log(taskId);
 
-        console.log(taskId as string);
         const dispatcherId = process.env.SERVER_NAME!;
         const heartbeat = this.startHeartbeat(taskId, dispatcherId);
 
-        await this.processTask(taskId);
-    }
-
-private GetServerWithLessPrecentOFOccupancy(
-    servers: SessionServerRedisRecord[]
-): SessionServerRedisRecord | null {
-
-    let bestServer: SessionServerRedisRecord | null = null;
-    let lowestLoad = Infinity;
-
-    for (const server of servers) {
-
-        if (!server.canAccept) continue;
-        if (server.status !== "online") continue;
-        if (server.maxLoad <= 0) continue;
-
-        const loadPercent = server.currentLoad / server.maxLoad;
-
-        if (loadPercent < lowestLoad) {
-            lowestLoad = loadPercent;
-            bestServer = server;
+        try {
+            await this.processTask(taskId);
+        } finally {
+            this.stopHeartbeat(heartbeat, taskId);
         }
     }
 
-    return bestServer;
-}
+    private stopHeartbeat(interval: NodeJS.Timeout, taskId: string) {
+        if (!interval) return;
 
-    private async processTask(taskId: string) {
-        await this.sleep(30000);
+        clearInterval(interval);
+        console.log(`[${taskId}] heartbeat stopped`);
+    }
 
-        const serverArray = await this.loadServers();
+    private GetServerWithLessPrecentOFOccupancy(
+        servers: SessionServerRedisRecord[]
+    ): SessionServerRedisRecord | null {
 
-        const bestServer = this.GetServerWithLessPrecentOFOccupancy(serverArray);
+        let bestServer: SessionServerRedisRecord | null = null;
+        let lowestLoad = Infinity;
 
-        if (!bestServer) {
-            console.warn("No available server found");
+        for (const server of servers) {
+
+            if (!server.canAccept) continue;
+            if (server.status !== "ONLINE") continue;
+            if (server.maxLoad <= 0) continue;
+
+            const loadPercent = server.currentLoad / server.maxLoad;
+
+            if (loadPercent < lowestLoad) {
+                lowestLoad = loadPercent;
+                bestServer = server;
+            }
+        }
+
+        return bestServer;
+    }
+
+private async processTask(taskId: string) {
+    try {
+        await this.delayBeforeProcessing();
+
+        const server = await this.pickBestServer();
+        if (!server) {
+            console.warn(`[${taskId}] No available server`);
+            await this.handleTaskFailure(taskId, "NO_SERVERS_AVAILABLE");
             return;
         }
 
-        console.log("ВЫПОЛНИЛ ЗАДАЧУ");
+        const payload = await this.loadTaskPayload(taskId);
+        if (!payload) {
+            console.warn(`[${taskId}] Invalid or missing payload`);
+            await this.handleTaskFailure(taskId, "INVALID_PAYLOAD");
+            return;
+        }
 
+        const response = await this.sendToServer(server, payload);
+        if (!response) {
+            console.warn(`[${taskId}] Server did not respond`);
+            await this.handleTaskFailure(taskId, "SERVER_ERROR");
+            return;
+        }
+
+        const redisResult = await this.markTaskAsReady(taskId, server);
+
+        if (!redisResult?.ok) {
+            console.warn(`[${taskId}] Redis state transition failed: ${redisResult?.status}`);
+            this.handleTaskFailure(taskId, redisResult?.status ?? "REDIS_ERROR");
+            return;
+        }
+
+        if (!redisResult.lobbyId) {
+            console.warn(`[${taskId}] Missing lobbyId from redis result`);
+            this.handleTaskFailure(taskId, "NO_LOBBY");
+            return;
+        }
+
+        await this.notifyLobby(
+            redisResult.lobbyId,
+            response.SessionID,
+            response.PassToken,
+            server
+        );
+
+        console.log(`[${taskId}] Task successfully completed`);
+    } catch (err) {
+        console.error(`[${taskId}] Unexpected error during task processing:`, err);
+        this.handleTaskFailure(taskId, "EXCEPTION");
+    }
+}
+
+    private async delayBeforeProcessing() {
+        await this.sleep(10000);
+    }
+
+    private async pickBestServer() {
+        const servers = await this.loadServers();
+        const bestServer = this.GetServerWithLessPrecentOFOccupancy(servers);
+
+        console.log(servers);
+        console.log(bestServer);
+
+        if (!bestServer) {
+            console.warn("No available server found");
+            return null;
+        }
+
+        return bestServer;
+    }
+
+
+    private async loadTaskPayload(taskId: string) {
+        const raw = await this.redisClient.hget(`mm:task:${taskId}`, "payload");
+
+        if (!raw) {
+            console.warn(`Payload not found for task ${taskId}`);
+            return null;
+        }
+
+        try {
+            return JSON.parse(raw);
+        } catch {
+            console.error("Invalid JSON payload");
+            return null;
+        }
+    }
+
+
+    private async sendToServer(server: any, payload: any) {
+        const url = `http://${server.host}:${server.port}/EntryPoint`;
+
+        try {
+            const res = await axios.post(url, payload, { timeout: 20000 });
+            console.log("ВЫПОЛНИЛ ЗАДАЧУ");
+            return res.data;
+        } catch (err) {
+            console.error("Ошибка при вызове сервера:", err);
+            return null;
+        }
+    }
+
+
+    private async markTaskAsReady(taskId: string, server: any) {
         const [ok, status, lobbyId] = await this.redisClient.evalsha(
             this.rediScripts.serverRadykSha,
             4,
@@ -101,19 +205,12 @@ private GetServerWithLessPrecentOFOccupancy(
 
             "PROCESSING",
             "READY",
-            bestServer.serverId,
-            bestServer.host,
-            String(bestServer.port)
+            server.serverId,
+            server.host,
+            String(server.port)
         );
 
-        console.log(ok, lobbyId);
-
-        if (!ok) {
-            this.handleTaskFailure(taskId, status);
-            return;
-        }
-
-        await this.notifyLobby(lobbyId, bestServer);
+        return { ok, status, lobbyId };
     }
 
     private async loadServers(): Promise<SessionServerRedisRecord[]> {
@@ -147,17 +244,33 @@ private GetServerWithLessPrecentOFOccupancy(
     }
 
 
-    private handleTaskFailure(taskId: string, status: string) {
+    private async handleTaskFailure(taskId: string, status: string) {
         if (status === "CANCELLED") {
             console.warn(`Task ${taskId} was cancelled`);
             return;
         }
 
         if (status === "READY") {
-            return; // идемпотентно уже обработано
+            return; 
+        }
+
+            if (status === "NO_SERVERS_AVAILABLE") {
+                console.warn(`[${taskId}] No servers available, retrying later`);
+
+                await this.redisClient.lpush("queue:matchmaking", taskId);
+
+                await this.redisClient.hset(
+                    `mm:task:${taskId}`,
+                    "status",
+                    "QUEUED",
+                );
+
+                return;
         }
     }
-    private async notifyLobby(lobbyId: string, server: SessionServerRedisRecord) {
+
+    
+    private async notifyLobby(lobbyId: string, sessionId: string, passToken:string, server: SessionServerRedisRecord) {
     const [servers, users] = await this.redisClient.evalsha(
         this.rediScripts.getLobbyUsersServersSha,
         2,
@@ -168,7 +281,8 @@ private GetServerWithLessPrecentOFOccupancy(
     const sessionInfo = {
         host: server.host,
         port: server.port,
-        passToken: "prefabToken",
+        passToken: passToken,
+        sessionId: sessionId,
         lobbyId,
         users
     };

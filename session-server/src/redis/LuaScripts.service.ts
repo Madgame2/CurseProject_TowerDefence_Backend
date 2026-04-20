@@ -8,6 +8,7 @@ import { RedisService } from "./redis.service";
 @Injectable()
 export class LuaScripts implements OnModuleInit {
   public registerServerSha: string = "";
+  public createSessioMetaDataSha: string =""
 
   constructor(private readonly redisService: RedisService) {}
 
@@ -22,7 +23,12 @@ export class LuaScripts implements OnModuleInit {
       path.join(process.cwd(), "LuaScripts/registerServer.lua"),
       "utf-8"
     );
+    const SessionMetaDataScript = fs.readFileSync(
+      path.join(process.cwd(), "LuaScripts/createSessionMetaData.lua"),
+      "utf-8"
+    );
 
     this.registerServerSha = (await client.script("LOAD", script)) as string;
+    this.createSessioMetaDataSha = (await client.script("LOAD", SessionMetaDataScript)) as string;
   }
 }

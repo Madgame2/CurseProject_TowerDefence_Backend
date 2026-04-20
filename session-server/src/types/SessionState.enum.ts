@@ -1,0 +1,10 @@
+
+
+export enum SessionState {
+  CREATING = 'CREATING',
+  WAITING = 'WAITING',
+  STARTING = 'STARTING',
+  RUNNING = 'RUNNING',
+  FINISHED = 'FINISHED',
+  DESTROYED = 'DESTROYED',
+}

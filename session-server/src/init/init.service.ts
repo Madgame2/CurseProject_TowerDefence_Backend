@@ -51,7 +51,8 @@ export class InitService implements OnModuleInit{
             configs.host,
             configs.port.toString(),
             configs.maxLoad.toString(),
-            String(configs.canAccept)
+            String(configs.canAccept),
+            String(configs.status)
     );
 
     if (result === 1) {
