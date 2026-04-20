@@ -94,6 +94,12 @@ private async processTask(taskId: string) {
     try {
         await this.delayBeforeProcessing();
 
+        const status:string = await this.CheckTaskStatus(taskId);
+        if(status!="queued"){
+            await this.handleTaskFailure(taskId, status);
+            return;
+        }
+
         const server = await this.pickBestServer();
         if (!server) {
             console.warn(`[${taskId}] No available server`);
@@ -131,7 +137,7 @@ private async processTask(taskId: string) {
 
         await this.notifyLobby(
             redisResult.lobbyId,
-            response.SessionID,
+            response.sessionId,
             response.PassToken,
             server
         );
@@ -142,6 +148,10 @@ private async processTask(taskId: string) {
         this.handleTaskFailure(taskId, "EXCEPTION");
     }
 }
+
+    private async CheckTaskStatus(taskID:string):Promise<string>{
+        return await this.redisClient.hget(`mm:task:${taskID}`,"status") as string;
+    }
 
     private async delayBeforeProcessing() {
         await this.sleep(10000);
@@ -186,6 +196,7 @@ private async processTask(taskId: string) {
         try {
             const res = await axios.post(url, payload, { timeout: 20000 });
             console.log("ВЫПОЛНИЛ ЗАДАЧУ");
+            console.log(res.data);
             return res.data;
         } catch (err) {
             console.error("Ошибка при вызове сервера:", err);
@@ -245,8 +256,12 @@ private async processTask(taskId: string) {
 
 
     private async handleTaskFailure(taskId: string, status: string) {
-        if (status === "CANCELLED") {
+        if (status === "cancelled") {
             console.warn(`Task ${taskId} was cancelled`);
+
+            await this.redisClient.del(`mm:task:${taskId}`);
+            await this.redisClient.lrem(`queue:processing`, 0, taskId);
+            await this.redisClient.lrem(`queue:matchmaking`, 0, taskId);
             return;
         }
 
@@ -258,6 +273,7 @@ private async processTask(taskId: string) {
                 console.warn(`[${taskId}] No servers available, retrying later`);
 
                 await this.redisClient.lpush("queue:matchmaking", taskId);
+                await this.redisClient.lrem("queue:processing", 0, taskId);
 
                 await this.redisClient.hset(
                     `mm:task:${taskId}`,
@@ -289,6 +305,7 @@ private async processTask(taskId: string) {
 
     const payload = JSON.stringify(sessionInfo);
 
+    console.log(payload)
     for (const server of servers) {
         await this.redisClient.publish(
             `DespatchNotification:${server}`,

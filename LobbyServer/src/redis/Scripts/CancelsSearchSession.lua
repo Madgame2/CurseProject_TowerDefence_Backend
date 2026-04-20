@@ -19,11 +19,6 @@ if redis.call("EXISTS", taskKey) == 0 then
     return 2
 end
 
-local status = redis.call("HGET", taskKey, "status")
-
-if status ~= "queued" then
-    return 3
-end
 
 redis.call("HSET", taskKey, "status", "cancelled")
 redis.call("HSET", taskKey, "cancelledAt", tostring(redis.call("TIME")[1]))

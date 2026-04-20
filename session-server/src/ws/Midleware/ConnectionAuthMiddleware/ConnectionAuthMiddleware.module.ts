@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { SessionRegistry } from "src/sessions/SessionRegistryModule/SessionRegistry";
 import { ConnectionMiddleware } from "src/ws/Types/WsContext";
 import { WSContext } from "src/ws/Types/WsContext";
+import { WSResponse } from "src/ws/Types/WSResponse";
 
 @Injectable()
 export class ConnectionAuthMiddleware implements ConnectionMiddleware {
@@ -13,13 +14,17 @@ async handle(ctx: WSContext, next: () => Promise<void>) {
     const userId = ctx.req.headers['x-user-id'] as string | undefined;
     const sessionId = ctx.req.headers['x-session-id'] as string | undefined;
 
+    console.log(auth, userId, sessionId);
+
     const reject = (msg: string) => {
         ctx.ws.send(msg);
         ctx.ws.close();
     };
 
     if (!auth || !userId || !sessionId) {
-        return reject("Missing auth headers");
+        const res: WSResponse = {code:403, message: "Missing auth headers"};
+        ctx.ws.send(res);
+        return ctx.ws.close();
     }
 
     const session = this.sessionRegistry.get(sessionId);

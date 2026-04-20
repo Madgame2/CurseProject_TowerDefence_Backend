@@ -13,6 +13,7 @@ export const CancelRequest = async (ctx: WSContext) => {
             `user:${ctx.userId}:lobby`
         );
 
+        console.log(result)
         let res: WSResponse;
 
         switch (result) {
@@ -64,6 +65,7 @@ export const CancelRequest = async (ctx: WSContext) => {
                 };
         }
 
+        console.log(res);
         return ctx.ws.send(JSON.stringify(res));
 
     } catch (e) {

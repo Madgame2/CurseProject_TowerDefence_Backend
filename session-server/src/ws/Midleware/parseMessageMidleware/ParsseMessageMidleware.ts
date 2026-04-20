@@ -1,7 +1,13 @@
-import { WSContext } from "../types/WSContext"
-import { WSResponse } from "../../types/WSResponse";
+import { Injectable } from "@nestjs/common";
+import { WSContext } from "src/ws/Types/WsContext";
+import { ConnectionMiddleware } from "src/ws/Types/WsContext";
+import { WSResponse } from "src/ws/Types/WSResponse";
 
-export const parseMessage = async (ctx: WSContext, next: (err?: any) => void) => {
+
+@Injectable()
+export class parseMessageMiddleware implements ConnectionMiddleware{
+ 
+    async handle(ctx: WSContext, next: () => Promise<void>) {
     try {
         const parsed = JSON.parse(ctx.rawMessage!);
         // базовая валидация
@@ -29,4 +35,5 @@ export const parseMessage = async (ctx: WSContext, next: (err?: any) => void) =>
         console.log("INVALID MESSAGE FORMAT");
         ctx.ws.send(JSON.stringify(errResponse));
     }
-};
+    }
+}

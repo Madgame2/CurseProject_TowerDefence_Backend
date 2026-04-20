@@ -9,6 +9,8 @@ import { Server, WebSocket } from 'ws';
 import { WSContext } from './Types/WsContext';
 import { WsMiddlewareRunner } from './Midleware/wsMidlewar.service';
 import { ConnectionAuthMiddleware } from './Midleware/ConnectionAuthMiddleware/ConnectionAuthMiddleware.module';
+import { parseMessageMiddleware } from './Midleware/parseMessageMidleware/ParsseMessageMidleware';
+import { PingPongMiddleware } from './Midleware/PingPongMidleware/pingPongMidleware';
 
 @WebSocketGateway({
   path: '/ws',
@@ -22,6 +24,8 @@ export class WsGateway implements OnGatewayConnection {
     private liveService: LiveHeatBeatService,
     private  wsMiddleware: WsMiddlewareRunner,
     private readonly auth: ConnectionAuthMiddleware,
+    private readonly parseMessaage: parseMessageMiddleware,
+    private readonly PingPong: PingPongMiddleware
   ){}
 
   async handleConnection(ws: WebSocket, req) {
@@ -34,11 +38,19 @@ export class WsGateway implements OnGatewayConnection {
 
     this.registry.addClient(ctx.userId!, ctx);
 
-    ws.on('message', (msg) => {
-      console.log('Message:', msg.toString());
-    });
+    ws.on('message',async (data) => {
+        const messageCtx: WSContext = {
+          ...ctx, 
+          rawMessage: data.toString(),
+        };
 
-    ws.send('Hello from NestJS WS');
+      await this.wsMiddleware.run(messageCtx,[
+        this.parseMessaage,
+        this.PingPong
+      ]);
+
+      console.log(data);
+    });
   }
 
   handleDisconnect(client: any) {
