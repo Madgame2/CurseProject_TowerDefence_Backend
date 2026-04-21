@@ -11,6 +11,7 @@ import { WsMiddlewareRunner } from './Midleware/wsMidlewar.service';
 import { ConnectionAuthMiddleware } from './Midleware/ConnectionAuthMiddleware/ConnectionAuthMiddleware.module';
 import { parseMessageMiddleware } from './Midleware/parseMessageMidleware/ParsseMessageMidleware';
 import { PingPongMiddleware } from './Midleware/PingPongMidleware/pingPongMidleware';
+import { SesionManager } from 'src/sessions/sessionManager/sessionManager';
 
 @WebSocketGateway({
   path: '/ws',
@@ -25,7 +26,8 @@ export class WsGateway implements OnGatewayConnection {
     private  wsMiddleware: WsMiddlewareRunner,
     private readonly auth: ConnectionAuthMiddleware,
     private readonly parseMessaage: parseMessageMiddleware,
-    private readonly PingPong: PingPongMiddleware
+    private readonly PingPong: PingPongMiddleware,
+    private readonly sessionManager: SesionManager,
   ){}
 
   async handleConnection(ws: WebSocket, req) {
@@ -51,15 +53,9 @@ export class WsGateway implements OnGatewayConnection {
 
       console.log(data);
     });
-  }
 
-  handleDisconnect(client: any) {
-    const userId = this.extractUserId(client);
-
-    this.registry.removeClient(userId);
-  }
-
-  private extractUserId(client: any): string {
-    return client.handshake?.query?.userId; // пример
+    ws.on('close',async ()=>{
+        this.sessionManager.removeClient(ctx.sessionId!, ctx.userId!)
+    })
   }
 }

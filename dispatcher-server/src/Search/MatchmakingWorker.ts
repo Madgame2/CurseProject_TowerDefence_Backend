@@ -94,12 +94,15 @@ private async processTask(taskId: string) {
     try {
         await this.delayBeforeProcessing();
 
+        console.log("Проверяю статус")
         const status:string = await this.CheckTaskStatus(taskId);
-        if(status!="queued"){
+        if(status!="PROCESSING"){
             await this.handleTaskFailure(taskId, status);
             return;
         }
 
+
+        console.log("Проверяю ищу сервер")
         const server = await this.pickBestServer();
         if (!server) {
             console.warn(`[${taskId}] No available server`);
@@ -150,7 +153,9 @@ private async processTask(taskId: string) {
 }
 
     private async CheckTaskStatus(taskID:string):Promise<string>{
-        return await this.redisClient.hget(`mm:task:${taskID}`,"status") as string;
+        const res = await this.redisClient.hget(`mm:task:${taskID}`,"status") as string;
+        console.log(res);
+        return res;
     }
 
     private async delayBeforeProcessing() {

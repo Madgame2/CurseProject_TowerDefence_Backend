@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { SesionManager } from "src/sessions/sessionManager/sessionManager";
 import { SessionRegistry } from "src/sessions/SessionRegistryModule/SessionRegistry";
 import { ConnectionMiddleware } from "src/ws/Types/WsContext";
 import { WSContext } from "src/ws/Types/WsContext";
@@ -7,7 +8,7 @@ import { WSResponse } from "src/ws/Types/WSResponse";
 @Injectable()
 export class ConnectionAuthMiddleware implements ConnectionMiddleware {
 
-    constructor(private readonly sessionRegistry: SessionRegistry){}
+    constructor(private readonly sessionRegistry: SessionRegistry, private readonly sessionManager:SesionManager){}
 
 async handle(ctx: WSContext, next: () => Promise<void>) {
     const auth = ctx.req.headers['authorization'] as string | undefined;
@@ -40,7 +41,7 @@ async handle(ctx: WSContext, next: () => Promise<void>) {
 
     const players = session.Players ?? [];
 
-    const findUser = players.includes(userId);
+    const findUser = players.has(userId);
 
     if (!findUser) {
         return reject("User not in session");
@@ -48,6 +49,7 @@ async handle(ctx: WSContext, next: () => Promise<void>) {
 
     ctx.userId = userId;
     ctx.sessionId = sessionId;
+    this.sessionManager.addPlayer(ctx.sessionId, ctx.userId);
 
     await next();
 }

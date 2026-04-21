@@ -17,7 +17,7 @@ export class LobbyLua {
 
         const result = await redis.evalsha(
                 RedisScripts.lobbyDisconnectSha,
-                8,
+                9,
                 `lobby:${lobbyId}:users`,
                 `lobby:${lobbyId}:host`,
                 "lobbies",
@@ -26,6 +26,7 @@ export class LobbyLua {
                 `lobby:${lobbyId}:hostName`,
                 `lobby:${lobbyId}:headerImage`,
                 `lobby:${lobbyId}:inviteCode`,
+                `index:lobby:${lobbyId}:lastTask`,
                 userId,
                 lobbyId
             );

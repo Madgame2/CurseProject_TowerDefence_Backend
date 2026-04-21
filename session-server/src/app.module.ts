@@ -10,11 +10,13 @@ import { ServerStateService } from './ServerStateModule/ServerState.Service';
 import { SessionModule } from './sessions/sessions.module';
 import { ServerStateModule } from './ServerStateModule/ServerState.module';
 import { MiddlewareModule } from './ws/Midleware/midleware.module';
+import { SessionMannagerModule } from './sessions/sessionManager/sessionManager.model';
 
 @Module({
   imports: [ConfigModule.forRoot({
       isGlobal: true,
-    }),RedisModule,
+    }),
+    RedisModule,
     InitModule,
     LiveHeatBeatModule,
     ClientRegistryModule,
@@ -22,7 +24,9 @@ import { MiddlewareModule } from './ws/Midleware/midleware.module';
     SessionModule,
     ServerStateModule,
     LiveHeatBeatModule,
-    MiddlewareModule,],
+    MiddlewareModule,
+    SessionMannagerModule,
+    SessionModule],
   controllers: [],
   providers: [WsGateway],
 })

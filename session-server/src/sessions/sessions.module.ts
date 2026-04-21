@@ -7,10 +7,11 @@ import { ServerStateModule } from "src/ServerStateModule/ServerState.module";
 import { ServerStateService } from "src/ServerStateModule/ServerState.Service";
 import { SessionRegistryModule } from "./SessionRegistryModule/SessionRegistru.module";
 import { InitModule } from "src/init/init.module";
+import { SesionManager } from "./sessionManager/sessionManager";
 
 @Module({
     imports: [RedisModule, ServerStateModule,SessionRegistryModule, InitModule],
-    providers: [SessionsService],
+    providers: [SessionsService,SesionManager],
     exports: [SessionsService],
 })
 

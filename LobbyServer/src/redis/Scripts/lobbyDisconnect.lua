@@ -21,6 +21,7 @@ local userLobbyKey = KEYS[5]
 local hostNameKey = KEYS[6]
 local headerImageKey = KEYS[7]
 local inviteCodeKey = KEYS[8]
+local indexlastTask = KEYS[8]
 
 local userId = ARGV[1]
 local lobbyId = ARGV[2]
@@ -41,6 +42,7 @@ if (#users == 0) then
     redis.call("DEL", inviteKey)
     redis.call("SREM", lobbiesKey, lobbyId)
 
+    redis.call("DEL", indexlastTask)
     return 1
 end
 
