@@ -1,6 +1,9 @@
 import Redis from "ioredis"
 import { ClientManager } from "../../modules/ClientManager";
 import { WSResponse } from "../../../types/WSResponse";
+import { LobbyEventType, LobbyServerEvent } from "../../dto/LobbyServerEvent";
+import lobbyService from "../LobbyService/Lobby.Service";
+import { RequestJpinToLobbyMessageDto } from "../../dto/RequestJpinToLobbyMessageDto";
 
 
 export class StreamConsumerService{
@@ -14,15 +17,48 @@ export class StreamConsumerService{
         this.clientManager = clientManager;
     }
 
-async startConsumer() {
-    const channel = `DespatchNotification:${process.env.SERVER_ID}`;
+    async startConsumer() {
+        const channel_dispatcher = `DespatchNotification:${process.env.SERVER_ID}`;
+        const Server_message = `LobbyServer:${process.env.SERVER_ID}`
 
-    await this.redisClinet.subscribe(channel);
+        await this.redisClinet.subscribe(channel_dispatcher);
+        await this.redisClinet.subscribe(Server_message);
 
-    const handler = async (incomingChannel: string, data: string) => { 
-        if (incomingChannel !== channel) return;
+        const handler = async (incomingChannel: string, data: string) => { 
 
-        console.log(data);
+            switch(incomingChannel){
+                case channel_dispatcher:
+                    this.handleDispatcher(data)
+                    break;
+
+                case Server_message:
+                    this.handleLobbyMessages(data);
+                    break;
+            }
+        };
+
+        this.redisClinet.on("message", handler);
+    }
+
+    private handleLobbyMessages(data:string){
+        try{
+            const message: LobbyServerEvent = JSON.parse(data); 
+
+            switch(message.eventType){
+                case LobbyEventType.REQUEST_TO_JOIN:{
+                    const payload: RequestJpinToLobbyMessageDto = message.payload;
+                    lobbyService.NotifyRequestToJoin(payload.LobbyID, payload.newUserId, payload.requestID);
+                    break;
+                }
+            }
+
+
+        }catch(ex){
+            console.log(ex);
+        }
+    }
+
+    private handleDispatcher(data: string){
         let event;
         try {
             event = JSON.parse(data);
@@ -59,8 +95,5 @@ async startConsumer() {
                 console.error(`Failed to send to user ${user}`, e);
             }
         }
-    };
-
-    this.redisClinet.on("message", handler);
-}
+    }
 }

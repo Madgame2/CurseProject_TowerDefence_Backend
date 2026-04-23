@@ -1,6 +1,6 @@
 import { UserAlreadInLobbyException } from "../../Exceptions/UserAlreadyInLobbyException";
 import { ILobbyRepository } from "./LobbyRepository/ILobbyRepository"
-import crypto from "crypto";
+import crypto, { randomUUID } from "crypto";
 import { UnitOfWork } from "../../../services/UnitOfWork/UnitOfWork";
 import { redis, redisSub } from "../../../config/redis.config";
 import { LobbyNotFoundException } from "../../Exceptions/LobbyNotFoundException";
@@ -19,15 +19,18 @@ import { LobbyEvent } from "../../types/LobbyEvent";
 import { Notify } from "../NotifySustem/NotifySystem";
 import { ClientManager } from "../../modules/ClientManager";
 import { WSResponse } from "../../../types/WSResponse";
+import { LobbyEventType, LobbyServerEvent } from "../../dto/LobbyServerEvent";
+import { RequestJpinToLobbyMessageDto } from "../../dto/RequestJpinToLobbyMessageDto";
 
 export class LobbyService{
 
 
-    private clientMannager:ClientManager | null = null;
+    private clientMannager!:ClientManager;
     private lobbyrep:ILobbyRepository = new Lobbyreposiory();
     private eventBus: LobbyEventBus = new LobbyEventBus(redisSub)
     private uof = new UnitOfWork(redis);
     private lobyStorage = lobbyStorage
+    private profileService = ProfileService;
 
 
     async init(clientMannager:ClientManager) {
@@ -120,6 +123,47 @@ export class LobbyService{
     }
 
 
+    public async NotifyRequestToJoin(LobbyID:string, PlayerID:string, requestID:string){
+        const lobby = lobbyStorage.get(LobbyID);
+        if(!lobby) return;
+
+        if(lobby.isFull) return;
+
+        const requestExist = redis.exists(`user:${PlayerID}:JoinRequests:${requestID}`)
+        if(!requestExist) return;
+
+        const client = this.clientMannager.get(lobby.host!);
+        const Player = await this.profileService.getProfile(PlayerID);
+        if(!Player) return;
+
+        const sendMessage :WSResponse = {code:200, action: "requestToJoin", data: Player} 
+        client?.ws.send(JSON.stringify(sendMessage))
+    }
+
+    public async sendRequestToJoin(PlayerID:string, LobbyId:string){
+        const Lobby = this.lobyStorage.get(LobbyId);
+        if(!Lobby){
+            throw new LobbyNotFoundException
+        }
+        console.log("lobby: ", Lobby)
+
+        if(Lobby.isFull){
+            throw new LobbyFullException(LobbyId, Lobby.maxSize);
+        }
+        console.log("lobby: ", Lobby)
+
+        const hostId = Lobby.host;
+        const userServer = await redis.get(`user:${hostId}:server`);
+        console.log("server: ", userServer)
+
+        const requestId = randomUUID();
+        const payloadMessage: RequestJpinToLobbyMessageDto = {LobbyID: LobbyId, newUserId: PlayerID, requestID: requestId}
+        const message: LobbyServerEvent = {eventType: LobbyEventType.REQUEST_TO_JOIN, payload:payloadMessage }
+
+        console.log(message)
+        await redis.set(`user:${PlayerID}:JoinRequests:${requestId}`, JSON.stringify(payloadMessage), "EX", 45)
+        redis.publish(`LobbyServer:${userServer}`, JSON.stringify(message));
+    }
 
     public async GetLobbyByHostId(HostId: string) :Promise<Lobby| null>{
         const bufferedLobby = this.lobyStorage.getByHost(HostId);

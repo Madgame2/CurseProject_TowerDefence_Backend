@@ -1,5 +1,5 @@
 
 
-export class RequestJoinToLobbyDTO{
-    LobbyID!: string;
+export type RequestJoinToLobbyDTO = {
+    LobbyID: string
 }

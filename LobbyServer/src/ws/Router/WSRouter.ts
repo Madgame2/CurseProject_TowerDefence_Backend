@@ -13,6 +13,8 @@ import { UnsubScribeMyLobbyEvents } from "../events/UnsubScribeMyLobbyEvents.eve
 import { UnubScribeLobiesEvents } from "../events/UnubScribeLobiesEvents.events";
 import { CancelRequest } from "../events/CancelsearchingSessionRequest";
 import { joinToLobbyByInviteCode, joinToLobbyRequest } from "../events/JoinToLobyRequest.event";
+import { ApplyPlayerToJoin } from "../events/ApplyPlayerToJoin";
+
 
 const WSrouter = new WSRouter();
 
@@ -30,6 +32,8 @@ WSrouter.on("CancelSearch", CancelRequest)
 
 WSrouter.on("LobbyrequestToJoin", joinToLobbyRequest)
 WSrouter.on("LobbyrequestToJoinByInviteCode", joinToLobbyByInviteCode)
+
+WSrouter.on("ApplyPlayerJoinRequest", ApplyPlayerToJoin)
 
 WSrouter.on("Events/SubScribeMyLobbyEvents",SubScribeMyLobbyEvents);
 WSrouter.on("Events/SubScribeLobiesEvents",subscribeLobiesEvents);
