@@ -9,6 +9,8 @@ import { SessionState } from "src/types/SessionState.enum";
 import { CreateSessionRequest } from "src/EntryPoint/dto/createSessionRequestDTO";
 import { Session } from "src/types/session";
 import { CleanUpdSession } from "src/types/CleanUpSession";
+import { PlayerSyncManager } from "./PlayerSyncManager";
+import { SessionNotifier } from "../SessionNotifier";
 
 
 @Injectable()
@@ -19,7 +21,10 @@ export class SesionManager{
             private readonly luaScripts: LuaScripts,
             private readonly configs: ServerConfigService,
             private readonly sessionRegistry: SessionRegistry,
-            private serverState: ServerStateService,){}
+            private serverState: ServerStateService,
+            private readonly playerSyncManager: PlayerSyncManager,
+            private readonly sessionNotifier: SessionNotifier
+        ){}
 
     async createNesession(req: CreateSessionRequest){
 
@@ -62,6 +67,8 @@ export class SesionManager{
                 Number(resultObj.Seed),
                 String(resultObj.PassToken),
                 resultObj.Players,
+                this.playerSyncManager,
+                this.sessionNotifier
             );
         
             session.on("ended", this.cleanSessoin.bind(this))

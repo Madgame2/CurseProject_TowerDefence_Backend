@@ -8,10 +8,12 @@ import { ServerStateService } from "src/ServerStateModule/ServerState.Service";
 import { SessionRegistryModule } from "./SessionRegistryModule/SessionRegistru.module";
 import { InitModule } from "src/init/init.module";
 import { SesionManager } from "./sessionManager/sessionManager";
+import { SessionMannagerModule } from "./sessionManager/sessionManager.model";
+import { SessionNotifier } from "./SessionNotifier";
 
 @Module({
-    imports: [RedisModule, ServerStateModule,SessionRegistryModule, InitModule],
-    providers: [SessionsService,SesionManager],
+    imports: [RedisModule, ServerStateModule, SessionRegistryModule, InitModule, SessionMannagerModule],
+    providers: [SessionsService],
     exports: [SessionsService],
 })
 

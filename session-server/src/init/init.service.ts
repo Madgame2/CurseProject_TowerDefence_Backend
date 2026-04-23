@@ -32,16 +32,18 @@ export class InitService implements OnModuleInit{
         } catch (e) {
             console.error("Heartbeat error", e);
         }
-    }, interval).unref();
+    }, interval);
 }
 
     async onModuleInit() {
+        await this.luaScripts.ensureReady();
         const redisClient = await this.redisService.getClient();
 
         const configs = this.configService.config;
         const serverId = configs.serverId;
 
 
+        console.log("REGISTER SHA:", this.luaScripts.registerServerSha);
         const result = await redisClient.evalsha(
             this.luaScripts.registerServerSha,
             2,

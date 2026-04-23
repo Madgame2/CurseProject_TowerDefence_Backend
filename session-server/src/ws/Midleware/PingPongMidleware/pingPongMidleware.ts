@@ -11,6 +11,7 @@ export class PingPongMiddleware implements ConnectionMiddleware{
 
         if(ctx.message?.action =="ping"){
             const res : WSResponse = {action: "pong", code:200};
+            console.log(ctx.message);
             console.log(res);
             ctx.ws.send(JSON.stringify(res));
         }

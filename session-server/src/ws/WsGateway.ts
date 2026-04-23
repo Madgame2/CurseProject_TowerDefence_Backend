@@ -12,6 +12,8 @@ import { ConnectionAuthMiddleware } from './Midleware/ConnectionAuthMiddleware/C
 import { parseMessageMiddleware } from './Midleware/parseMessageMidleware/ParsseMessageMidleware';
 import { PingPongMiddleware } from './Midleware/PingPongMidleware/pingPongMidleware';
 import { SesionManager } from 'src/sessions/sessionManager/sessionManager';
+import { ClientConnection } from './Types/ClientConnection';
+import { WsMessageRouter } from './MessageRouter/WsMessageRouter';
 
 @WebSocketGateway({
   path: '/ws',
@@ -22,7 +24,6 @@ export class WsGateway implements OnGatewayConnection {
   server: Server;
 
   constructor(private registry: ClientRegistryService,
-    private liveService: LiveHeatBeatService,
     private  wsMiddleware: WsMiddlewareRunner,
     private readonly auth: ConnectionAuthMiddleware,
     private readonly parseMessaage: parseMessageMiddleware,
@@ -38,24 +39,29 @@ export class WsGateway implements OnGatewayConnection {
       this.auth
     ])
 
-    this.registry.addClient(ctx.userId!, ctx);
+    const connection = new ClientConnection(
+        ctx
+    );
+
+    this.registry.addClient(ctx.userId!, connection);
 
     ws.on('message',async (data) => {
         const messageCtx: WSContext = {
           ...ctx, 
           rawMessage: data.toString(),
         };
-
+      
       await this.wsMiddleware.run(messageCtx,[
         this.parseMessaage,
         this.PingPong
       ]);
 
-      console.log(data);
+      
     });
 
     ws.on('close',async ()=>{
         this.sessionManager.removeClient(ctx.sessionId!, ctx.userId!)
+        connection.router.destroy?.();
     })
   }
 }

@@ -14,8 +14,8 @@ import { SesionManager } from "./sessionManager/sessionManager";
 export  class SessionsService{
 
     constructor(
-    private serverState: ServerStateService,
-    private readonly sessionManager: SesionManager
+        private serverState: ServerStateService,
+        private readonly sessionManager: SesionManager
     ){}
 
     async tryCreateSession(req: CreateSessionRequest): Promise<Session> {

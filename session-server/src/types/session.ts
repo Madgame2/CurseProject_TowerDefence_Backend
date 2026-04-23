@@ -4,17 +4,24 @@ import { SessionState } from "./SessionState.enum";
 import { SessionStateMachine } from "src/sessions/sessionStateMachine.service";
 import { EventEmitter } from "events";
 import { CleanUpdSession } from "./CleanUpSession";
+import { PlayerSyncManager } from "src/sessions/sessionManager/PlayerSyncManager";
+import { SessionNotifier } from "src/sessions/SessionNotifier";
+import { WSResponse } from "src/ws/Types/WSResponse";
 
 export class Session extends EventEmitter{
     SessionID!: string;
     Dificulty!: SessionDificulty;
     Seed!: number;
     Players: Set<string> = new Set();
+    playersToConneced: Set<string> = new Set;
     onlinePlayersId: Set<string> = new Set();
     PassToken!: string;
     SessionState!: SessionState
+    sessionNotifier: SessionNotifier
 
     private waitingTimeout?: NodeJS.Timeout;
+
+    private playerSyncManager: PlayerSyncManager;
 
     private stateMachine: SessionStateMachine;
 
@@ -23,7 +30,9 @@ export class Session extends EventEmitter{
         difficulty: SessionDificulty,
         seed: number,
         passToken: string,
-        players: string[]
+        players: string[],
+        playerSyncManager :PlayerSyncManager,
+        sessionNotifier: SessionNotifier
     ) {
         super()
         this.SessionID = id;
@@ -31,6 +40,8 @@ export class Session extends EventEmitter{
         this.Seed = seed;
         this.PassToken = passToken;
         this.SessionState =SessionState.NONE; 
+        this.playerSyncManager = playerSyncManager
+        this.sessionNotifier = sessionNotifier
 
         for(var player of players){
             this.Players.add(player);
@@ -56,9 +67,11 @@ export class Session extends EventEmitter{
         this.stateMachine.registerOnEnter(SessionState.CREATING, (session)=>{
             console.log("CREATING");
             session.waitingTimeout = setTimeout(()=>{
-                    if(session.onlinePlayersId.size === 0){
+                    if(session.playersToConneced.size === 0){
                         console.log("TIMEOUT NO PLAYERS");
                         session.StatemachineEmit("no_players_timeout");
+                    }else {
+                        this.stateMachine.transition(this,SessionState.STARTING)
                     }
             },40000)
         })
@@ -82,7 +95,18 @@ export class Session extends EventEmitter{
             this.cleanUp();
         })
 
+        this.stateMachine.registerOnEnter(SessionState.STARTING, async (session)=>{
+            const sucsesfuluInitedPalyers = await this.playerSyncManager.syncPlayers();
+            sucsesfuluInitedPalyers.forEach((i)=>this.onlinePlayersId.add(i))
 
+            this.stateMachine.transition(session, SessionState.RUNNING);
+        })
+
+        this.stateMachine.registerOnEnter(SessionState.RUNNING, (session)=>{
+
+            const message:WSResponse = {code:200, action:"startSession"}
+            this.sessionNotifier.broadcast(Array.from(this.onlinePlayersId), JSON.stringify(message));
+        })
 
         this.stateMachine.transition(this, SessionState.CREATING);
     }
@@ -91,14 +115,17 @@ export class Session extends EventEmitter{
     public addPlayer(playerId: string){
         if(!this.Players.has(playerId)) throw new NotAllowPlayerException(playerId);
         
-        this.onlinePlayersId.add(playerId);
+        this.playersToConneced.add(playerId);
+        this.playerSyncManager.addPalyerToConnection(playerId);
         this.StatemachineEmit("player_joined");
     }
 
     public removePlayer(playerId: string){
         if(!this.Players.has(playerId)) return;
 
+        this.playersToConneced.delete(playerId);
         this.onlinePlayersId.delete(playerId);
+        this.playerSyncManager.removePlayer(playerId);
         this.StatemachineEmit("player_leave");
     }
 

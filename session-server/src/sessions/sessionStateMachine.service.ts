@@ -90,8 +90,8 @@ export class SessionStateMachine{
     private canTransition(from: SessionState, to: SessionState): boolean {
     const map = {
       NONE: ["CREATING"],
-      CREATING: ['WAITING',"CANCELED"],
-      WAITING: ['RUNNING'],
+      CREATING: ['STARTING',"CANCELED"],
+      STARTING: ['RUNNING'],
       RUNNING: ['FINISHED'],
       FINISHED: [],
       CANCELED: [],
