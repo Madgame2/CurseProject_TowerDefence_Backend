@@ -22,4 +22,32 @@ export type LobbyEvent =
         lobby: Lobby | null;
         lobbyId: string;
         state: string
+    })    
+    | (IEvent & {
+        type: "LOBBY_PLAYER_JOINED";
+        lobbyId: string;
+        lobby: Lobby | null;
+        userId: string;
+    })
+    | (IEvent & {
+        type: "LOBBY_PLAYER_LEFT";
+        lobbyId: string;
+        lobby: Lobby | null;
+        userId: string;
+    })
+    | (IEvent & {
+        type: "LOBBY_HOST_CHANGED";
+        lobbyId: string;
+        lobby: Lobby | null;
+        newHostId: string;
+    })
+    | (IEvent & {
+        type: "LOBBY_DELETED";
+        lobbyId: string;
+        lobby: Lobby | null;
+    })
+    | (IEvent & {
+        type: "LOBBY_STATE_SYNC";
+        lobbyId: string;
+        lobby: Lobby;
     });

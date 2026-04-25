@@ -3,20 +3,22 @@ import { WSResponse } from "../../types/WSResponse";
 import { WSContext } from "../types/WSContext";
 import { redis } from "../../config/redis.config";
 import { RedisScripts } from "../../redis/scriptsLoader";
+import { LobbyEvent } from "../types/LobbyEvent";
+
 
 export const CancelRequest = async (ctx: WSContext) => {
     try {
 
-        const result = await redis.evalsha(
+        const [status, lobbyId] = (await redis.evalsha(
             RedisScripts.CancelSearchtaskSha,
             1,
             `user:${ctx.userId}:lobby`
-        );
+        ))as [number, string | null];
 
-        console.log(result)
+        console.log(status)
         let res: WSResponse;
 
-        switch (result) {
+        switch (status) {
             case 0:
                 res = {
                     code: 404,
@@ -66,6 +68,12 @@ export const CancelRequest = async (ctx: WSContext) => {
         }
 
         console.log(res);
+        const event :LobbyEvent = {type: "LOBBY_STATE_UPDATE", 
+                    lobbyId: lobbyId!,
+                    lobby: null,
+                    state: "IDLE"
+                }
+        await redis.publish("lobby_runtime", JSON.stringify(event));
         return ctx.ws.send(JSON.stringify(res));
 
     } catch (e) {
@@ -76,6 +84,7 @@ export const CancelRequest = async (ctx: WSContext) => {
             requestId: ctx.requestId,
             data: "INTERNAL_ERROR"
         };
+
 
         return ctx.ws.send(JSON.stringify(res));
     }

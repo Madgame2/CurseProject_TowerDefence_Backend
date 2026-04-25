@@ -21,6 +21,8 @@ import { ClientManager } from "../../modules/ClientManager";
 import { WSResponse } from "../../../types/WSResponse";
 import { LobbyEventType, LobbyServerEvent } from "../../dto/LobbyServerEvent";
 import { RequestJpinToLobbyMessageDto } from "../../dto/RequestJpinToLobbyMessageDto";
+import { RedisScripts } from "../../../redis/scriptsLoader";
+import { IEvent } from "../NotifySustem/Events/iEvent";
 
 export class LobbyService{
 
@@ -43,6 +45,7 @@ export class LobbyService{
     private async handleMessage(channel: string, message: string) {
         const event: LobbyEvent = JSON.parse(message);
 
+        console.log(channel, "message: ", message);
         if (channel === "lobby_updates") {
             await this.handleUpdate(event);
         }
@@ -53,10 +56,90 @@ export class LobbyService{
     }
 
     private async handleRuntime(event:LobbyEvent){
+
+        const users = this.lobyStorage.get(event.lobbyId)?.users;
+        console.log(event);
         switch (event.type){
             case "LOBBY_STATE_UPDATE":
-            const users = this.lobyStorage.get(event.lobbyId)?.users;
-            this.notifyUsersAboutLobbyStateUpdate(users!, event.state)
+                this.notifyUsersAboutLobbyStateUpdate(users!, event.state)
+            break;
+
+            case "LOBBY_HOST_CHANGED":
+                this.notifyUsersAboutLobbyHostChanged(users!, event.newHostId)
+            break;
+
+            case "LOBBY_PLAYER_LEFT":
+                this.notifyUsersAboutLobbyPlayerLeft(users!, event.userId)
+            break;
+
+            case "LOBBY_PLAYER_JOINED":
+                this.notifyUsersAboutLobbyPlayerJoin(users!,event.lobbyId ,event.userId)
+            break;
+        }
+    }
+
+    private notifyUsersAboutLobbyPlayerLeft(users: string[], leftUserId:string){
+        for(var user of users){
+            const client = this.clientMannager?.get(user);
+
+            const res: WSResponse = {
+                code: 200,
+                action: "Lobby_updates",
+                data: {
+                    type: "PLAYER_LEFT",
+                    userId: leftUserId
+                }
+            }
+            console.log(res);
+            client?.ws.send(JSON.stringify(res))
+        }
+    }
+
+    private async notifyUsersAboutLobbyPlayerJoin (users: string[], newLobbyId:string , joinedUserId:string){
+        const JoindeUserProfile = await this.profileService.getProfile(joinedUserId)
+        for(var user of users){
+            const client = this.clientMannager?.get(user);
+
+            let res: WSResponse;
+            if(client?.userId == joinedUserId){
+                const newLobby = await this.GetLobby(newLobbyId);
+                res ={code: 200,
+                    action: "Lobby_updates",
+                    data: {
+                        type: "NEW_LOBBY",
+                        lobby: newLobby
+                    }
+                }
+                console.log(res);
+            }else{
+                
+                res = {
+                    code: 200,
+                    action: "Lobby_updates",
+                    data: {
+                        type: "PLAYER_JOIND",
+                        profile: JoindeUserProfile
+                    }
+                }
+            }
+            console.log("client ",client?.userId ,res);
+            client?.ws.send(JSON.stringify(res))
+        }
+    }
+
+    private notifyUsersAboutLobbyHostChanged(users: string[], newHostId:string){
+        for(var user of users){
+            const client = this.clientMannager?.get(user);
+
+            const res: WSResponse = {
+                code: 200,
+                action: "Lobby_updates",
+                data: {
+                    type: "NEW_HOST",
+                    hostID: newHostId
+                }
+            }
+            client?.ws.send(JSON.stringify(res))
         }
     }
 
@@ -104,7 +187,6 @@ export class LobbyService{
     private async handleLobbyUpdated(event: LobbyEvent) {
         let lobby =
             event.lobby ??
-            this.lobyStorage.get(event.lobbyId) ??
             await this.lobbyrep.getLobby(event.lobbyId);
 
         if (!lobby) return;
@@ -136,7 +218,7 @@ export class LobbyService{
         const Player = await this.profileService.getProfile(PlayerID);
         if(!Player) return;
 
-        const sendMessage :WSResponse = {code:200, action: "requestToJoin", data: Player} 
+        const sendMessage :WSResponse = {code:200, action: "requestToJoin", data:{profile: Player, requestId: requestID}} 
         client?.ws.send(JSON.stringify(sendMessage))
     }
 
@@ -145,22 +227,18 @@ export class LobbyService{
         if(!Lobby){
             throw new LobbyNotFoundException
         }
-        console.log("lobby: ", Lobby)
 
         if(Lobby.isFull){
             throw new LobbyFullException(LobbyId, Lobby.maxSize);
         }
-        console.log("lobby: ", Lobby)
 
         const hostId = Lobby.host;
         const userServer = await redis.get(`user:${hostId}:server`);
-        console.log("server: ", userServer)
 
         const requestId = randomUUID();
         const payloadMessage: RequestJpinToLobbyMessageDto = {LobbyID: LobbyId, newUserId: PlayerID, requestID: requestId}
         const message: LobbyServerEvent = {eventType: LobbyEventType.REQUEST_TO_JOIN, payload:payloadMessage }
 
-        console.log(message)
         await redis.set(`user:${PlayerID}:JoinRequests:${requestId}`, JSON.stringify(payloadMessage), "EX", 45)
         redis.publish(`LobbyServer:${userServer}`, JSON.stringify(message));
     }
@@ -283,9 +361,7 @@ export class LobbyService{
     }
 
     public async CreateLobby(hadmaster: string): Promise<Lobby | null> {
-        console.log("startCreate");
         await this.uof.start();
-        console.log("UOW started");
 
         try {
             // Проверка существующего лобби через обычный get
@@ -342,6 +418,70 @@ export class LobbyService{
             throw e;
         }
     }
+
+    public async JoinToLobby_new(userId:string, requestId:string ,newLobbyId:string):Promise<void>{
+        const raw = await redis.evalsha(
+            RedisScripts.joinToOtherLobbySha,
+            2,
+            `lobby:${newLobbyId}`,
+            `user:${userId}:JoinRequests:${requestId}`,
+            userId,
+            newLobbyId
+        );
+
+        if(!raw) return;
+
+        const result = JSON.parse(raw as string);
+        
+        const runTime_events: LobbyEvent[] = [];
+        const globalEvents_events: LobbyEvent[] = [];
+
+        if(result.deletedLobby){
+            globalEvents_events.push({
+                type: "LOBBY_DELETED",
+                lobbyId: result.oldLobbyId,
+                lobby: null
+            })
+        }else{
+            globalEvents_events.push({
+                type: "LOBBY_UPDATED",
+                lobbyId: result.oldLobbyId,
+                lobby: null
+            })
+
+            runTime_events.push({
+                type: "LOBBY_PLAYER_LEFT",
+                lobby: null,
+                lobbyId: result.oldLobbyId,
+                userId: userId
+            })
+
+            if(result.newHost){
+            runTime_events.push({
+                type: "LOBBY_HOST_CHANGED",
+                lobbyId: result.oldLobbyId,
+                newHostId: result.newHost,
+                lobby: null
+            })
+        }
+        }
+        globalEvents_events.push({
+                type: "LOBBY_UPDATED",
+                lobbyId: result.newLobbyId,
+                lobby: null
+        })
+
+        runTime_events.push({
+            type: "LOBBY_PLAYER_JOINED",
+            lobby: null,
+            lobbyId: result.newLobbyId,
+            userId: userId
+        })
+
+        await Promise.all(globalEvents_events.map(e => LobbyEvents.publish(e)));
+        await Promise.all(runTime_events.map(e => redis.publish("lobby_runtime", JSON.stringify(e))));
+    }
+    
 
     public async joinLobby(userId: string, newLobbyId:string): Promise<void> {
     await this.uof.start(); 

@@ -8,6 +8,7 @@ export class RedisScripts {
     public static CancelSearchtaskSha: string;
     public static GetuserStateSha:string;
     public static deleteuserSha:string;
+    public static joinToOtherLobbySha: string;
 
 
     static async loadScripts() {
@@ -36,17 +37,24 @@ export class RedisScripts {
             "utf-8"
         );
 
+        const joinToOtherLobbyScript = fs.readFileSync(
+            path.join(__dirname, "scripts/JoinToOtherLobby.lua"),
+            "utf-8"
+        );
+
         const disconnectSha = await redis.script("LOAD", disconnectScript);
         const matchmakingSha = await redis.script("LOAD", matchmakingScript);
         const cancelSearchSha = await redis.script("LOAD", cancelSearchScript);
         const GetUserStateSha = await redis.script("LOAD", GetUserStateScript);
         const deleteUserRecidsSha = await redis.script("LOAD", deleteUserScript);
+        const joinToOtherLobbySha = await redis.script("LOAD", joinToOtherLobbyScript);
 
         RedisScripts.lobbyDisconnectSha = disconnectSha as string;
         RedisScripts.matchmakingEnqueueSha = matchmakingSha as string;
         RedisScripts.CancelSearchtaskSha = cancelSearchSha as string;
         RedisScripts.GetuserStateSha = GetUserStateSha as string;
         RedisScripts.deleteuserSha = deleteUserRecidsSha as string;
+        RedisScripts.joinToOtherLobbySha = joinToOtherLobbySha as string;
     }
 
 }
