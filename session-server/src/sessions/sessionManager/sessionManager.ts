@@ -14,6 +14,8 @@ import { SessionNotifier } from "../SessionNotifier";
 import { WorldSimulationService } from "../World/WorldSimulation/WorldSimulation.service";
 import { WorldFactory } from "../World/worldFactory";
 import { PlayerEventBinder } from "../PlayerEventBinder/PlayerEventBinder";
+import { NetworkSysncService } from "../Net/NetworkSyncService";
+import { ClientRegistryService } from "src/ws/ClientRegistry/ClientRegistry.service";
 
 
 @Injectable()
@@ -28,7 +30,8 @@ export class SesionManager{
             private readonly playerSyncManager: PlayerSyncManager,
             private readonly sessionNotifier: SessionNotifier,
             private readonly worldFactory: WorldFactory,
-            private readonly pleyerEventBuilder: PlayerEventBinder
+            private readonly pleyerEventBuilder: PlayerEventBinder,
+            private readonly clientRegistryService: ClientRegistryService
         ){}
 
     async createNesession(req: CreateSessionRequest){
@@ -66,6 +69,8 @@ export class SesionManager{
                     throw new Error('Failed to parse session JSON from Redis');
                 }
         
+
+            const networkSysncService: NetworkSysncService = new NetworkSysncService(this.clientRegistryService)
             const session = new Session(
                 String(resultObj.SessionID),
                 resultObj.Dificulty,
@@ -75,7 +80,8 @@ export class SesionManager{
                 this.playerSyncManager,
                 this.sessionNotifier,
                 this.worldFactory,
-                this.pleyerEventBuilder
+                this.pleyerEventBuilder,
+                networkSysncService
             );
         
             session.on("ended", this.cleanSessoin.bind(this))

@@ -12,7 +12,7 @@ import { World } from "src/sessions/World/Entities/World";
 import { WorldFactory } from "src/sessions/World/worldFactory";
 import { PlayerEventBinder } from "src/sessions/PlayerEventBinder/PlayerEventBinder";
 import { Player } from "src/sessions/World/Entities/Player";
-import { SnapshotService } from "src/sessions/Net/SnapshotService";
+import { NetworkSysncService } from "src/sessions/Net/NetworkSyncService";
 
 export class Session extends EventEmitter{
     SessionID!: string;
@@ -24,18 +24,18 @@ export class Session extends EventEmitter{
     PassToken!: string;
     SessionState!: SessionState
     sessionNotifier: SessionNotifier
-    //worldSimulation: WorldSimulationService
     worldFactory: WorldFactory
     playerEventBinder: PlayerEventBinder
+    networkSyncService!: NetworkSysncService
 
     world!: World;
 
     private tickLoop  = new TickLoop(20);
     private waitingTimeout?: NodeJS.Timeout;
     private playerSyncManager: PlayerSyncManager;
-    private snapShotService: SnapshotService;
+    //private snapShotService: SnapshotService;
 
-
+    currentTick:number = 0;
 
     private stateMachine: SessionStateMachine;
 
@@ -48,7 +48,8 @@ export class Session extends EventEmitter{
         playerSyncManager :PlayerSyncManager,
         sessionNotifier: SessionNotifier,
         worldFactory: WorldFactory,
-        playerEventBinder: PlayerEventBinder
+        playerEventBinder: PlayerEventBinder,
+        networkSyncService: NetworkSysncService
     ) {
         super()
         this.SessionID = id;
@@ -59,14 +60,17 @@ export class Session extends EventEmitter{
         this.playerSyncManager = playerSyncManager;
         this.sessionNotifier = sessionNotifier;
         this.worldFactory = worldFactory;
-        this.playerEventBinder = playerEventBinder
+        this.playerEventBinder = playerEventBinder;
+        this.networkSyncService = networkSyncService;
+
+        this.networkSyncService.session = this;
 
         for(var player of players){
             this.Players.add(player);
         }
 
         this.stateMachine = new SessionStateMachine(this)
-        this.snapShotService = new SnapshotService(this);
+        //this.snapShotService = new SnapshotService(this);
         this.setupStates();
     }
 
@@ -160,7 +164,10 @@ export class Session extends EventEmitter{
 
     private startTickLoop() {
         this.tickLoop.start((delta) => { 
+            this.currentTick++;
+
             this.world.worldSimulationService.tick(delta);
+            this.networkSyncService.update(delta);
         });
     }
 
