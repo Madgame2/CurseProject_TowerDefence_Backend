@@ -7,6 +7,12 @@ import { CleanUpdSession } from "./CleanUpSession";
 import { PlayerSyncManager } from "src/sessions/sessionManager/PlayerSyncManager";
 import { SessionNotifier } from "src/sessions/SessionNotifier";
 import { WSResponse } from "src/ws/Types/WSResponse";
+import { TickLoop } from "src/sessions/Net/Tickloop";
+import { World } from "src/sessions/World/Entities/World";
+import { WorldFactory } from "src/sessions/World/worldFactory";
+import { PlayerEventBinder } from "src/sessions/PlayerEventBinder/PlayerEventBinder";
+import { Player } from "src/sessions/World/Entities/Player";
+import { SnapshotService } from "src/sessions/Net/SnapshotService";
 
 export class Session extends EventEmitter{
     SessionID!: string;
@@ -18,10 +24,18 @@ export class Session extends EventEmitter{
     PassToken!: string;
     SessionState!: SessionState
     sessionNotifier: SessionNotifier
+    //worldSimulation: WorldSimulationService
+    worldFactory: WorldFactory
+    playerEventBinder: PlayerEventBinder
 
+    world!: World;
+
+    private tickLoop  = new TickLoop(20);
     private waitingTimeout?: NodeJS.Timeout;
-
     private playerSyncManager: PlayerSyncManager;
+    private snapShotService: SnapshotService;
+
+
 
     private stateMachine: SessionStateMachine;
 
@@ -32,7 +46,9 @@ export class Session extends EventEmitter{
         passToken: string,
         players: string[],
         playerSyncManager :PlayerSyncManager,
-        sessionNotifier: SessionNotifier
+        sessionNotifier: SessionNotifier,
+        worldFactory: WorldFactory,
+        playerEventBinder: PlayerEventBinder
     ) {
         super()
         this.SessionID = id;
@@ -40,14 +56,17 @@ export class Session extends EventEmitter{
         this.Seed = seed;
         this.PassToken = passToken;
         this.SessionState =SessionState.NONE; 
-        this.playerSyncManager = playerSyncManager
-        this.sessionNotifier = sessionNotifier
+        this.playerSyncManager = playerSyncManager;
+        this.sessionNotifier = sessionNotifier;
+        this.worldFactory = worldFactory;
+        this.playerEventBinder = playerEventBinder
 
         for(var player of players){
             this.Players.add(player);
         }
 
         this.stateMachine = new SessionStateMachine(this)
+        this.snapShotService = new SnapshotService(this);
         this.setupStates();
     }
 
@@ -73,7 +92,7 @@ export class Session extends EventEmitter{
                     }else {
                         this.stateMachine.transition(this,SessionState.STARTING)
                     }
-            },40000)
+            },10000)
         })
         this.stateMachine.registerOnExit(SessionState.CREATING, (session)=>{
             if (session.waitingTimeout) {
@@ -96,16 +115,26 @@ export class Session extends EventEmitter{
         })
 
         this.stateMachine.registerOnEnter(SessionState.STARTING, async (session)=>{
-            const sucsesfuluInitedPalyers = await this.playerSyncManager.syncPlayers();
-            sucsesfuluInitedPalyers.forEach((i)=>this.onlinePlayersId.add(i))
+            this.world = await this.worldFactory.createWorld(this.Seed);
+            const sucsesfuluInitedPalyers = await this.playerSyncManager.syncPlayers(this.world);
+            sucsesfuluInitedPalyers.forEach((i)=>{
+                this.onlinePlayersId.add(i)
+
+                const newPlayer = new Player(i)
+                this.world.addPlayer(newPlayer);
+            })
+            
 
             this.stateMachine.transition(session, SessionState.RUNNING);
         })
 
         this.stateMachine.registerOnEnter(SessionState.RUNNING, (session)=>{
+            
+            this.playerEventBinder.bindAll(this.onlinePlayersId)
 
             const message:WSResponse = {code:200, action:"startSession"}
             this.sessionNotifier.broadcast(Array.from(this.onlinePlayersId), JSON.stringify(message));
+            this.startTickLoop()
         })
 
         this.stateMachine.transition(this, SessionState.CREATING);
@@ -129,6 +158,15 @@ export class Session extends EventEmitter{
         this.StatemachineEmit("player_leave");
     }
 
+    private startTickLoop() {
+        this.tickLoop.start((delta) => { 
+            this.world.worldSimulationService.tick(delta);
+        });
+    }
+
+    private stopTickLoop() {
+        this.tickLoop.stop();
+    }
 
     cleanUp(){
         const payLoad: CleanUpdSession = {sessionId: this.SessionID}

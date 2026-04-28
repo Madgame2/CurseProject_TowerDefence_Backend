@@ -10,9 +10,14 @@ import { InitModule } from "src/init/init.module";
 import { SesionManager } from "./sessionManager/sessionManager";
 import { SessionMannagerModule } from "./sessionManager/sessionManager.model";
 import { SessionNotifier } from "./SessionNotifier";
+import { WorldModule } from "./World/WorldModuel.module";
+import { PlayerEventModule } from "./PlayerEventBinder/PlayerEvent.module";
 
 @Module({
-    imports: [RedisModule, ServerStateModule, SessionRegistryModule, InitModule, SessionMannagerModule],
+    imports: [RedisModule, ServerStateModule, 
+        SessionRegistryModule, InitModule, 
+        SessionMannagerModule, WorldModule,
+        PlayerEventModule],
     providers: [SessionsService],
     exports: [SessionsService],
 })

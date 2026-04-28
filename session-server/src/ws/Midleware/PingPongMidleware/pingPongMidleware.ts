@@ -14,6 +14,7 @@ export class PingPongMiddleware implements ConnectionMiddleware{
             console.log(ctx.message);
             console.log(res);
             ctx.ws.send(JSON.stringify(res));
+            return;
         }
 
         await next()

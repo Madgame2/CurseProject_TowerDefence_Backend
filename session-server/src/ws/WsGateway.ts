@@ -14,6 +14,8 @@ import { PingPongMiddleware } from './Midleware/PingPongMidleware/pingPongMidlew
 import { SesionManager } from 'src/sessions/sessionManager/sessionManager';
 import { ClientConnection } from './Types/ClientConnection';
 import { WsMessageRouter } from './MessageRouter/WsMessageRouter';
+import { RequestManager } from 'src/Services/RequestManager';
+import { WsmessageRouterMiddleware } from './Midleware/WsMessageRouterMiddleware/WsMessageRouterMiddleware';
 
 @WebSocketGateway({
   path: '/ws',
@@ -29,18 +31,22 @@ export class WsGateway implements OnGatewayConnection {
     private readonly parseMessaage: parseMessageMiddleware,
     private readonly PingPong: PingPongMiddleware,
     private readonly sessionManager: SesionManager,
+    private readonly messageRouter: WsmessageRouterMiddleware
   ){}
 
   async handleConnection(ws: WebSocket, req) {
     console.log('Client connected');
     const ctx: WSContext = { ws, req };
 
+
     await this.wsMiddleware.run(ctx,[
       this.auth
     ])
 
+    const session = this.sessionManager.getSession(ctx.sessionId!)
     const connection = new ClientConnection(
-        ctx
+        ctx,
+        session!
     );
 
     this.registry.addClient(ctx.userId!, connection);
@@ -53,7 +59,8 @@ export class WsGateway implements OnGatewayConnection {
       
       await this.wsMiddleware.run(messageCtx,[
         this.parseMessaage,
-        this.PingPong
+        this.PingPong,
+        this.messageRouter
       ]);
 
       

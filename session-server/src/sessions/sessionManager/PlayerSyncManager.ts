@@ -1,6 +1,10 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, RequestMapping } from "@nestjs/common";
+import { RequestManager } from "src/Services/RequestManager";
 import { ClientRegistryService } from "src/ws/ClientRegistry/ClientRegistry.service";
 import { WSResponse } from "src/ws/Types/WSResponse";
+import { World } from "../World/Entities/World";
+import { Chank } from "../World/Chanks/Chank";
+import { ClientConnection } from "src/ws/Types/ClientConnection";
 
 
 @Injectable()
@@ -19,10 +23,10 @@ export class PlayerSyncManager {
         this.palyerToConnect.delete(playerId);
     }
 
-    async syncPlayers(): Promise<string[]> {
+    async syncPlayers(world:World): Promise<string[]> {
         const promises = Array.from(this.palyerToConnect).map(async (playerId) => {
             try {
-                await this.syncPlayer(playerId);
+                await this.syncPlayer(playerId, world);
 
                 if(this.palyerToConnect.size != 0){
                     const connection = this.clients.getClient(playerId);
@@ -47,7 +51,7 @@ export class PlayerSyncManager {
         return results.filter((id): id is string => id !== null);
     }
 
-    async syncPlayer(playerId: string){
+    async syncPlayer(playerId: string, world:World){
         const playerContext = this.clients.getClient(playerId);
 
         if (!playerContext) {
@@ -62,7 +66,7 @@ export class PlayerSyncManager {
         console.log(`${playerId} - к синхранизации готов`)
 
 
-        await this.SendAllMetaData()
+        await this.SendAllMetaData(playerContext, world);
         console.log(`${playerId} - все данные были доставленны`)
 
         const SyncFinishedMessage:WSResponse = {code: 200, action: "playerSyncFinished"}
@@ -73,6 +77,34 @@ export class PlayerSyncManager {
     }
 
 
-    private  async SendAllMetaData(){
+    private  async SendAllMetaData(playerContext: ClientConnection, world: World){
+
+
+        await this.MetaData(playerContext, world);
+
+        await this.SendWorldData(playerContext, world);
+    }
+
+    private async SendWorldData(playerContext: ClientConnection, world: World){
+
+        const rootChanks = world.chankManager.getRootChanks()
+
+        for(var chank of rootChanks)
+        {
+            await this.sendChank(chank,playerContext)
+        }
+    }
+
+    
+    private async sendChank(chank:Chank,playerContext :ClientConnection){
+
+        console.log ({x: chank.x, z: chank.z});
+        const cend:WSResponse ={code:300, action:"chankPreload", data: {x: chank.x, z: chank.z}}
+        playerContext.ctx.ws.send(JSON.stringify(cend))
+        await playerContext.router.waitFor("chankApply");
+    }
+
+    private async MetaData(playerContext: ClientConnection, world: World){
+        return;
     }
 }

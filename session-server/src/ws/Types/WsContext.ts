@@ -20,5 +20,5 @@ export interface WSContext {
 
 // Middleware тип
 export interface ConnectionMiddleware {
-  handle(ctx: WSContext, next: (err?: any) => void | Promise<void>): Promise<void> | void;
+  handle(client: WSContext, next: (err?: any) => void | Promise<void>): Promise<void> | void;
 }

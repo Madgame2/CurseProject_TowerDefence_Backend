@@ -1,7 +1,7 @@
 export type WSResponse ={
     code: Number,
     action?: string,
-    message? : String,
+    message? : string,
     data? : any,
     requestId?: string;
 }

@@ -11,6 +11,9 @@ import { Session } from "src/types/session";
 import { CleanUpdSession } from "src/types/CleanUpSession";
 import { PlayerSyncManager } from "./PlayerSyncManager";
 import { SessionNotifier } from "../SessionNotifier";
+import { WorldSimulationService } from "../World/WorldSimulation/WorldSimulation.service";
+import { WorldFactory } from "../World/worldFactory";
+import { PlayerEventBinder } from "../PlayerEventBinder/PlayerEventBinder";
 
 
 @Injectable()
@@ -23,7 +26,9 @@ export class SesionManager{
             private readonly sessionRegistry: SessionRegistry,
             private serverState: ServerStateService,
             private readonly playerSyncManager: PlayerSyncManager,
-            private readonly sessionNotifier: SessionNotifier
+            private readonly sessionNotifier: SessionNotifier,
+            private readonly worldFactory: WorldFactory,
+            private readonly pleyerEventBuilder: PlayerEventBinder
         ){}
 
     async createNesession(req: CreateSessionRequest){
@@ -68,7 +73,9 @@ export class SesionManager{
                 String(resultObj.PassToken),
                 resultObj.Players,
                 this.playerSyncManager,
-                this.sessionNotifier
+                this.sessionNotifier,
+                this.worldFactory,
+                this.pleyerEventBuilder
             );
         
             session.on("ended", this.cleanSessoin.bind(this))
@@ -78,6 +85,10 @@ export class SesionManager{
                 
         
         return session;
+    }
+
+    getSession(id:string){
+        return this.sessionRegistry.get(id);
     }
 
     private async cleanSessoin(Payload: CleanUpdSession){

@@ -9,10 +9,12 @@ import { InitModule } from "src/init/init.module";
 import { ServerStateModule } from "src/ServerStateModule/ServerState.module";
 import { SessionModule } from "src/sessions/sessions.module";
 import { SessionMannagerModule } from "src/sessions/sessionManager/sessionManager.model";
+import { WsmessageRouterMiddleware } from "./WsMessageRouterMiddleware/WsMessageRouterMiddleware";
+import { ClientRegistryModule } from "../ClientRegistry/ClientRegistry.Module";
 
 @Module({
-    imports: [SessionRegistryModule, RedisModule, ServerStateModule, InitModule, SessionMannagerModule],
-    providers: [WsMiddlewareRunner, ConnectionAuthMiddleware,parseMessageMiddleware,PingPongMiddleware],
-    exports: [WsMiddlewareRunner,ConnectionAuthMiddleware,parseMessageMiddleware,PingPongMiddleware]
+    imports: [SessionRegistryModule, RedisModule, ServerStateModule, InitModule, SessionMannagerModule, ClientRegistryModule],
+    providers: [WsMiddlewareRunner, ConnectionAuthMiddleware,parseMessageMiddleware,PingPongMiddleware, WsmessageRouterMiddleware],
+    exports: [WsMiddlewareRunner,ConnectionAuthMiddleware,parseMessageMiddleware,PingPongMiddleware, WsmessageRouterMiddleware]
 })
 export class MiddlewareModule{}
