@@ -1,5 +1,7 @@
 import { ChankManager } from "../Chanks/ChunkManager";
 import { MovementService } from "../MovementService/MovementService";
+import { PlayerFactory } from "../PlayerFactory/PlayerFactory";
+import { WorldQuery } from "../worldQuery/WorldQuery";
 import { WorldSimulationService } from "../WorldSimulation/WorldSimulation.service";
 import { Player } from "./Player";
 
@@ -10,10 +12,20 @@ export class World{
     chankManager!: ChankManager;
     movementService!: MovementService;
     worldSimulationService!: WorldSimulationService
-    setSystems(chankManager: ChankManager, movementService: MovementService, worldSimulation: WorldSimulationService){
+    playerFactory!: PlayerFactory
+    worldQuery!: WorldQuery
+
+    setSystems(chankManager: ChankManager,
+        movementService: MovementService,
+        worldSimulation: WorldSimulationService,
+        playerFactory: PlayerFactory){
+
         this.chankManager = chankManager;
         this.movementService = movementService;
         this.worldSimulationService = worldSimulation;
+        this.playerFactory = playerFactory;
+
+        this.worldQuery = new WorldQuery(this);
     }
 
 

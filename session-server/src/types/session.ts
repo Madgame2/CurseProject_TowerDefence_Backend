@@ -121,11 +121,9 @@ export class Session extends EventEmitter{
         this.stateMachine.registerOnEnter(SessionState.STARTING, async (session)=>{
             this.world = await this.worldFactory.createWorld(this.Seed);
             const sucsesfuluInitedPalyers = await this.playerSyncManager.syncPlayers(this.world);
+
             sucsesfuluInitedPalyers.forEach((i)=>{
                 this.onlinePlayersId.add(i)
-
-                const newPlayer = new Player(i)
-                this.world.addPlayer(newPlayer);
             })
             
 

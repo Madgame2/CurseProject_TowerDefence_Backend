@@ -5,6 +5,8 @@ import { WSResponse } from "src/ws/Types/WSResponse";
 import { World } from "../World/Entities/World";
 import { Chank } from "../World/Chanks/Chank";
 import { ClientConnection } from "src/ws/Types/ClientConnection";
+import { Vector2 } from "src/types/Vector2";
+import { WSMessage } from "src/ws/Types/WSMessage";
 
 
 @Injectable()
@@ -24,32 +26,107 @@ export class PlayerSyncManager {
     }
 
     async syncPlayers(world:World): Promise<string[]> {
-        const promises = Array.from(this.palyerToConnect).map(async (playerId) => {
-            try {
-                await this.syncPlayer(playerId, world);
 
-                if(this.palyerToConnect.size != 0){
+        const synced = await this.syncClients(world);
+
+        const spawned = await this.spawnPlayers(world, synced);
+
+        const payload = this.buildPlayersPayload(world);
+
+        await this.broadcastPlayersInit(world, spawned, payload);
+
+        return spawned;
+    }
+
+
+    private async syncClients(world: World): Promise<string[]> {
+        const synced = await Promise.all(
+            Array.from(this.palyerToConnect).map(async (playerId) => {
+                try {
+                    await this.syncPlayer(playerId, world);
+
                     const connection = this.clients.getClient(playerId);
 
-                    const sendAwaitmessage: WSResponse = {
-                        code: 200,
-                        action: "awaitOtherCleints"
-                    };
+                    if (this.palyerToConnect.size > 1) {
+                        const msg: WSResponse = {
+                            code: 200,
+                            action: "awaitOtherClients",
+                        };
 
-                    connection?.ctx.ws.send(JSON.stringify(sendAwaitmessage));
+                        connection?.ctx.ws.send(JSON.stringify(msg));
+                    }
+
+                    return playerId;
+                } catch (err) {
+                    console.error(`Player ${playerId} failed sync`, err);
+                    return null;
                 }
-                
-                return playerId; 
-            } catch (err) {
-                console.error(`Player ${playerId} failed`, err);
-                return null; 
-            }
-        });
+            })
+        );
 
-        const results = await Promise.all(promises);
-
-        return results.filter((id): id is string => id !== null);
+        return synced.filter((id): id is string => id !== null);
     }
+
+    private async spawnPlayers(world: World, playerIds: string[]): Promise<string[]> {
+        const spawned = await Promise.all(
+            playerIds.map(async (playerId) => {
+                try {
+                    const player = world.playerFactory.createNewPlayer(
+                        playerId,
+                        Vector2.zero(),
+                        6
+                    );
+
+                    world.addPlayer(player);
+
+                    return playerId;
+                } catch (err) {
+                    console.error(`Player ${playerId} failed spawn`, err);
+                    return null;
+                }
+            })
+        );
+
+        return spawned.filter((id): id is string => id !== null);
+    }
+
+    private buildPlayersPayload(world: World) {
+        return world.getAllPlayers().map((p) => ({
+            playerId: p.id,
+            hp: p.hp,
+            position: p.position,
+            rotation: p.rotation,
+        }));
+    }
+
+
+    private async broadcastPlayersInit(
+        world: World,
+        playerIds: string[],
+        payload: any
+    ): Promise<void> {
+
+        const message: WSResponse = {
+            code: 200,
+            action: "playersInit_metadata",
+            data: payload,
+        };
+
+        await Promise.all(
+            playerIds.map(async (playerId) => {
+                try {
+                    const client = this.clients.getClient(playerId);
+
+                    client?.ctx.ws.send(JSON.stringify(message));
+
+                    await client?.router.waitFor("meataDataApply");
+                } catch (err) {
+                    console.error(`Player ${playerId} failed metadata sync`, err);
+                }
+            })
+        );
+    }
+
 
     async syncPlayer(playerId: string, world:World){
         const playerContext = this.clients.getClient(playerId);

@@ -25,25 +25,38 @@ export class NetworkSysncService{
 
 
     private broadcast() {
-        const players = this.session.onlinePlayersId;
+    const playersIds = this.session.onlinePlayersId;
 
-        for(var playerId of players){
-            const clientConnection = this.playersregisty.getClient(playerId);
-            if(!clientConnection) continue;
+    // 1. Собираем состояния ВСЕХ игроков
+    const playersStates: PlayerState[] = [];
 
-            const player = this.session.world.getPlayer(playerId)
-            const PlayerState:PlayerState =  {id: player!.id,
-                position: player!.position,
-                rotation: player!.rotation,
-                state: player!.state,
-                velocity: player!.velocity}
-            const paket : WorldUpdatePaket = new WorldUpdatePaket(
-                {
-                    tick: this.session.currentTick,
-                    players: [PlayerState]
-                }
-            )
-            clientConnection.ctx.ws.send(JSON.stringify(paket))
-        }
+    for (const playerId of playersIds) {
+        const player = this.session.world.getPlayer(playerId);
+        if (!player) continue;
+
+        playersStates.push({
+            id: player.id,
+            position: player.position,
+            rotation: player.rotation,
+            state: player.state,
+            velocity: player.velocity
+        });
     }
+
+    // 2. Создаём ОДИН пакет со всеми игроками
+    const paket: WorldUpdatePaket = new WorldUpdatePaket({
+        tick: this.session.currentTick,
+        players: playersStates
+    });
+
+    const serialized = JSON.stringify(paket);
+
+    // 3. Отправляем его КАЖДОМУ клиенту
+    for (const playerId of playersIds) {
+        const clientConnection = this.playersregisty.getClient(playerId);
+        if (!clientConnection) continue;
+
+        clientConnection.ctx.ws.send(serialized);
+    }
+}
 }
