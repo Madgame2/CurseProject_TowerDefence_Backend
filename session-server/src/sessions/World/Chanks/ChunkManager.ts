@@ -1,21 +1,24 @@
 import { Injectable } from "@nestjs/common";
 import { Chank } from "./Chank";
-import { RenderPipline } from "../RenderPipline/RenderPipline";
+import { Vector2 } from "src/types/Vector2";
+import { WorldQuery } from "../worldQuery/WorldQuery";
+import { StructureService } from "../Structures/StructService";
+import { RootHouse } from "../Structures/stuctures_imp/RootHouse.struct";
 
 function xzKey(x: number, z: number): string {
     return `${x}:${z}`;
 }
 
-@Injectable()
 export class ChankManager{
     private chunks = new Map<string, Chank>();
     private rootChanks: Chank[] = []
 
+    worldQuery!: WorldQuery;
+
     public static readonly chankSize:number
 
     constructor(
-        private chankSize: number,
-        private renderPipline: RenderPipline){
+        private chankSize: number){
             this.chankSize = chankSize;
         }
 

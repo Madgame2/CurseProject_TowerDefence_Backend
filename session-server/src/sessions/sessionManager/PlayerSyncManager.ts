@@ -7,6 +7,7 @@ import { Chank } from "../World/Chanks/Chank";
 import { ClientConnection } from "src/ws/Types/ClientConnection";
 import { Vector2 } from "src/types/Vector2";
 import { WSMessage } from "src/ws/Types/WSMessage";
+import { structNotifaer } from "../Net/StructNotifier";
 
 
 @Injectable()
@@ -170,15 +171,30 @@ export class PlayerSyncManager {
         {
             await this.sendChank(chank,playerContext)
         }
+
+        await this.sencdRootEntity(world,playerContext);
     }
 
     
     private async sendChank(chank:Chank,playerContext :ClientConnection){
-
-        console.log ({x: chank.x, z: chank.z});
+        //const chankEnityes = chank.getAllBlocksLocal()
         const cend:WSResponse ={code:300, action:"chankPreload", data: {x: chank.x, z: chank.z}}
         playerContext.ctx.ws.send(JSON.stringify(cend))
-        await playerContext.router.waitFor("chankApply");
+        await playerContext.router.waitFor("chankApply", 200000);
+    }
+
+    private async sencdRootEntity(world:World ,playerContext :ClientConnection){
+
+        const rootEntity = world.rootStruct
+        const nofifaer = new structNotifaer();
+
+        const rootHouseInitObj = nofifaer.createNotifieObj(rootEntity);
+
+        const send:WSResponse ={code:300, action:"EntityReg", data: rootHouseInitObj}
+        console.log(send);
+        playerContext.ctx.ws.send(JSON.stringify(send));
+
+        await playerContext.router.waitFor("EntityApply", 200000);
     }
 
     private async MetaData(playerContext: ClientConnection, world: World){

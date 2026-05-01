@@ -18,10 +18,10 @@ export class WorldQuery{
 
     isPositionFree(pos: Vector2, radius = 0): boolean {
 
-    const feet = this.getBlock(pos.x, pos.y)
+        const feet = this.getBlock(pos.x, pos.y)
 
-    return !feet.isSolid
-}
+        return !feet.isSolid
+    }
 
     findFreeSpawn(basePos: Vector2, radius: number): Vector3 | null {
     for (let i = 0; i < 30; i++) {
@@ -33,6 +33,7 @@ export class WorldQuery{
             0,
             basePos.y + offsetZ
         )
+        console.log("pos: ", pos);
 
         if (this.isPositionFree(pos)) {
             return pos

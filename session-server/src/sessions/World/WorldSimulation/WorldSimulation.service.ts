@@ -17,7 +17,7 @@ export class WorldSimulationService{
     updateMovement(delta: number) {
 for (const player of this.world.getAllPlayers()) {
 
-    console.log(player);
+    //console.log(player);
     if (!player.moveIntent) continue;
 
     const toTarget = Vector3.subtract(player.moveIntent, player.position);
