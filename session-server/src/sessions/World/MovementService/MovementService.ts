@@ -1,3 +1,4 @@
+import { Vector2 } from "src/types/Vector2";
 import { World } from "../Entities/World";
 import { Vector3 } from "src/types/Vector3";
 
@@ -11,6 +12,7 @@ export class MovementService {
         console.log(player);
         if (!player) return;
 
+        player.navAgent.setTarget(new Vector2(target.x, target.z));
         player.moveIntent = target;
 
         console.log(player);

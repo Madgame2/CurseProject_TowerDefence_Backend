@@ -5,6 +5,7 @@ import { RootHouse } from "../Structures/stuctures_imp/RootHouse.struct";
 import { StructureEntity, StructureEntityWithHP } from "../Structures/StructureEntity";
 import { Structure } from "../Structures/StructureModels";
 import { randomUUID } from "crypto";
+import { Console } from "console";
 
 export class DecorationGenerator {
 
@@ -34,6 +35,10 @@ export class DecorationGenerator {
             Math.floor(pos.x),
             Math.floor(pos.z)
         );
+        console.log("Структура размещенна");
+        console.log("ВОТ Е БЛОК", Math.floor(pos.x), " ",Math.floor(pos.z)  );
+        console.log(this.worldQuery.getBlock(Math.floor(pos.x),
+            Math.floor(pos.z)));
 
         if (!success) {
             console.warn("Не удалось разместить структуру");

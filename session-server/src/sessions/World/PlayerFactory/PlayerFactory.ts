@@ -3,6 +3,7 @@ import { Player } from "../Entities/Player";
 import { World } from "../Entities/World";
 import { Vector2 } from "src/types/Vector2";
 import { NoFreeSpaceException } from "src/Exceptions/NoFreeSpaceException";
+import { NavAgent } from "../NavSystem/NavAgent";
 
 
 export class PlayerFactory{
@@ -12,7 +13,8 @@ export class PlayerFactory{
 
     createNewPlayer(PlayerId: string, spawnCenter: Vector2, radius:number): Player{
 
-        const player = new Player(PlayerId);
+        const navAgent = new NavAgent(this.world.pathfindingService);
+        const player = new Player(PlayerId,navAgent);
 
         let position = this.setPlayerPosition(spawnCenter, radius)
         

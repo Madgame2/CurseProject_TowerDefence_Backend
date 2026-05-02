@@ -74,6 +74,6 @@ export class Chank{
         output += row + "\n";
     }
 
-    console.log(`CHUNK (${this.x}, ${this.z})\n` + output);
+    //console.log(`CHUNK (${this.x}, ${this.z})\n` + output);
 }
 }

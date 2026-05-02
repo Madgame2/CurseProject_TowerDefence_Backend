@@ -14,8 +14,6 @@ export class StructureService {
     ) {}
 
     placeStructure(structure: Structure, worldX: number, worldZ: number): boolean {
-
-        console.log("WORLD: ", worldX," " ,worldZ );
         // 1. Проверяем что место свободно
         for (const block of structure.blocks) {
             const x = worldX + block.x;
@@ -33,10 +31,12 @@ export class StructureService {
 
             const chunk = this.chunkManager.getChunkByWorldPos(x, z);
             const { lx, lz } = chunk.worldToLocal(x, z);
+            console.log(x," " , z);
+            console.log(lx, " " ,lz);
 
             chunk.setBlock(lx, lz, block.blockId);
-
-            chunk.drawConsole();
+            console.log(chunk.getBlock(lx, lz));
+            //chunk.drawConsole();
         }
 
 

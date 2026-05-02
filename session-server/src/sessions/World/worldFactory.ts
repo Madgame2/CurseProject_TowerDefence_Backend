@@ -11,6 +11,7 @@ import { StructureService } from "./Structures/StructService";
 import { DecorationGenerator } from "./RenderPipline/DecorationGenerator";
 import { StructureEntity } from "./Structures/StructureEntity";
 import { RootHouse } from "./Structures/stuctures_imp/RootHouse.struct";
+import { PathfindingService } from "./NavSystem/PathfindingService";
 
 
 @Injectable()
@@ -26,9 +27,10 @@ export class WorldFactory{
         const worldSimulationService = new WorldSimulationService(newWorld)
         const playerFactory = new PlayerFactory(newWorld);
         const decorationGenerator = new DecorationGenerator(seed,newWorld.worldQuery,StructService);
+        const pathfindingService = new PathfindingService(newWorld);
 
         chankManager.worldQuery = newWorld.worldQuery;
-        newWorld.setSystems(chankManager,movementService,worldSimulationService,playerFactory,decorationGenerator);
+        newWorld.setSystems(chankManager,movementService,worldSimulationService,playerFactory,decorationGenerator, pathfindingService);
         chankManager.preloadArea(0,0,4);
         const structEntity = decorationGenerator.PlaseRootHouse(RootHouse, 0,0);
         

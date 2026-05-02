@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { World } from "../Entities/World";
 import { Vector3 } from "src/types/Vector3";
 import { PlayerStates } from "../Entities/Player";
+import { Vector2 } from "src/types/Vector2";
 
 
 export class WorldSimulationService{
@@ -15,40 +16,58 @@ export class WorldSimulationService{
     }
 
     updateMovement(delta: number) {
-for (const player of this.world.getAllPlayers()) {
+            for (const player of this.world.getAllPlayers()) {
 
-    //console.log(player);
-    if (!player.moveIntent) continue;
+                const agent = player.navAgent;
 
-    const toTarget = Vector3.subtract(player.moveIntent, player.position);
-    const distance = toTarget.length();
+                // 🔥 пересчёт пути если нужно
+                const dir = agent.update( new Vector2(player.position.x, player.position.z));
 
-    const moveDistance = player.speed * delta;
+                if (!dir) {
+                    player.velocity = Vector3.zero();
+                    player.direction = Vector3.zero();
+                    player.state = PlayerStates.IDEL;
+                    continue;
+                }
 
-    // 🔥 ВОТ КЛЮЧЕВАЯ ЧАСТЬ
-    if (moveDistance >= distance) {
-        // дошли до точки
-        player.position = player.moveIntent;
-        player.velocity = Vector3.zero();
-        player.direction = Vector3.zero();
-        player.state = PlayerStates.IDEL;
-        player.moveIntent = null;
-        continue;
-    }
+                const direction = new Vector3(dir!.x, 0, dir!.y);
+                const moveDistance = player.speed * delta;
 
-    const direction = Vector3.normalize(toTarget);
-    const velocity = direction.multiply(player.speed);
+                const targetPoint2D = agent.path![agent.curentIndex!];
+                const targetPoint = new Vector3(targetPoint2D.x, 0, targetPoint2D.y);
 
-    player.direction = direction;
-    player.velocity = velocity;
-    player.state = PlayerStates.RUNING;
-    const angleY = Math.atan2(direction.x, direction.z) * (180 / Math.PI);
+                const toTarget = Vector3.subtract(targetPoint, player.position);
+                const distance = toTarget.length();
 
-    player.rotation = new Vector3(0,angleY,0 )
-    player.position = Vector3.add(
-        player.position,
-        Vector3.multiply(direction, moveDistance)
-    );
-}
+                if (moveDistance >= distance) {
+                    player.position = targetPoint;
+
+                    // переключение точки
+                    agent.curentIndex!++;
+
+                    if (agent.curentIndex! >= agent.path!.length) {
+                        agent.path = undefined;
+                        player.velocity = Vector3.zero();
+                        player.direction = Vector3.zero();
+                        player.state = PlayerStates.IDEL;
+                        continue;
+                    }
+                }
+
+                const velocity = direction.multiply(player.speed);
+
+                player.direction = direction;
+                player.velocity = velocity;
+                player.state = PlayerStates.RUNING;
+
+                const angleY = Math.atan2(direction.x, direction.z) * (180 / Math.PI);
+                player.rotation = new Vector3(0, angleY, 0);
+
+                //console.log(player);
+                player.position = Vector3.add(
+                    player.position,
+                    Vector3.multiply(direction, moveDistance)
+                );
+            }
         }
 }   

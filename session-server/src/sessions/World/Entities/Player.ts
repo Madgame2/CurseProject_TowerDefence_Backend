@@ -1,4 +1,5 @@
 import { Vector3 } from "src/types/Vector3";
+import { NavAgent } from "../NavSystem/NavAgent";
 
 export enum PlayerStates {
     IDEL = "IDEL",
@@ -21,8 +22,13 @@ export class Player {
 
     state: PlayerStates;
 
-    constructor(id: string) {
+    navAgent: NavAgent
+
+
+
+    constructor(id: string,navAgent: NavAgent ) {
         this.id = id;
+        this.navAgent = navAgent
 
         this.position = new Vector3(0, 0, 0);
         this.velocity = new Vector3(0, 0, 0);
@@ -33,7 +39,7 @@ export class Player {
 
         this.state = PlayerStates.IDEL;
 
-        this.speed = 20;
+        this.speed = 2;
         this.hp = 100;
     }
 }

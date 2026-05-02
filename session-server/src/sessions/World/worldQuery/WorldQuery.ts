@@ -9,14 +9,17 @@ export class WorldQuery{
 
     constructor(private world: World){}
 
-    getBlock(x: number, z: number,): Block {
-        const chunk = this.world.chankManager.getChunkByWorldPos(x, z)
-        const blockId = chunk.getBlock(x, z);
+    getBlock(x: number, z: number): Block {
+        const chunk = this.world.chankManager.getChunkByWorldPos(x, z);
+
+        const { lx, lz } = chunk.worldToLocal(x, z);
+
+        const blockId = chunk.getBlock(lx, lz);
 
         return BlockRegistry.get(blockId) ?? BlockRegistry.get(0)!;
     }
 
-    isPositionFree(pos: Vector2, radius = 0): boolean {
+    isPositionFree(pos: Vector2): boolean {
 
         const feet = this.getBlock(pos.x, pos.y)
 
