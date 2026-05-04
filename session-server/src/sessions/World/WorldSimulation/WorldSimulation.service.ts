@@ -18,6 +18,8 @@ export class WorldSimulationService{
     updateMovement(delta: number) {
             for (const player of this.world.getAllPlayers()) {
 
+                if(player.state == PlayerStates.BLOCKED_ADN_HIDE) return;
+
                 const agent = player.navAgent;
 
                 // 🔥 пересчёт пути если нужно
@@ -58,7 +60,6 @@ export class WorldSimulationService{
 
                 player.direction = direction;
                 player.velocity = velocity;
-                player.state = PlayerStates.RUNING;
 
                 const angleY = Math.atan2(direction.x, direction.z) * (180 / Math.PI);
                 player.rotation = new Vector3(0, angleY, 0);

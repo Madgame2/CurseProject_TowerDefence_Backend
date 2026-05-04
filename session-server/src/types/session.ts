@@ -114,7 +114,16 @@ export class Session extends EventEmitter{
             console.log("PLAYER JOING");
         })
 
+        this.stateMachine.registerHandler(SessionState.RUNNING, "player_leave",(session)=>{
+            console.log(session.onlinePlayersId.size);
+            if(session.onlinePlayersId.size === 0){
+                console.log("ПЕРЕХОДИМ В ОТМЕНУ")
+                this.stateMachine.transition(this,SessionState.CANCELED)
+            }
+        })
+
         this.stateMachine.registerOnEnter(SessionState.CANCELED,(session)=>{
+            console.log("В отменне");
             this.cleanUp();
         })
 
@@ -152,11 +161,14 @@ export class Session extends EventEmitter{
     }
 
     public removePlayer(playerId: string){
+        console.log("Удаляю: ", playerId);
         if(!this.Players.has(playerId)) return;
+        console.log("нашел: ", playerId);
 
         this.playersToConneced.delete(playerId);
         this.onlinePlayersId.delete(playerId);
         this.playerSyncManager.removePlayer(playerId);
+        console.log("событие: ", playerId);
         this.StatemachineEmit("player_leave");
     }
 
@@ -174,6 +186,7 @@ export class Session extends EventEmitter{
     }
 
     cleanUp(){
+        this.stopTickLoop();
         const payLoad: CleanUpdSession = {sessionId: this.SessionID}
         this.emit("ended", payLoad)
     }

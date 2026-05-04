@@ -3,6 +3,9 @@ import { ClientRegistryService } from "src/ws/ClientRegistry/ClientRegistry.serv
 import { WorldUpdatePaket } from "./models/WorldUpdatesPaket";
 import { time } from "console";
 import { PlayerState } from "./models/PlayerState";
+import { WorldUpdatesStorage } from "./models/WorldUpdateStorage";
+import { ChankUpdate } from "./models/ChankUpdate";
+import { EnityEvent } from "./models/EnityState";
 
 
 export class NetworkSysncService{
@@ -12,7 +15,8 @@ export class NetworkSysncService{
 
     session!: Session;
 
-    constructor(private playersregisty: ClientRegistryService){}
+    constructor(private playersregisty: ClientRegistryService
+    ){}
 
     update(delta: number) {
         this.accumulator += delta;
@@ -29,12 +33,14 @@ export class NetworkSysncService{
 
     // 1. Собираем состояния ВСЕХ игроков
     const playersStates: PlayerState[] = [];
-
+    const chankUpdates: ChankUpdate[] =[]
+    const enitiesEvnets: EnityEvent[] =[]
     for (const playerId of playersIds) {
         const player = this.session.world.getPlayer(playerId);
         if (!player) continue;
 
         playersStates.push({
+            type: "playerState",
             id: player.id,
             position: player.position,
             rotation: player.rotation,
@@ -42,11 +48,25 @@ export class NetworkSysncService{
             velocity: player.velocity
         });
     }
+    for(let update of this.session.world.worldUpdatesStorage.getAll()){
+        switch(update.type){
+            case "chunk":{
+                chankUpdates.push(update as ChankUpdate);
+                break;
+            }
+            case "Entity":{
+                enitiesEvnets.push(update as EnityEvent);
+                break;
+            }
+        }
+    }
 
     // 2. Создаём ОДИН пакет со всеми игроками
     const paket: WorldUpdatePaket = new WorldUpdatePaket({
         tick: this.session.currentTick,
-        players: playersStates
+        players: playersStates,
+        chanks: chankUpdates,
+        enities: enitiesEvnets
     });
 
     const serialized = JSON.stringify(paket);

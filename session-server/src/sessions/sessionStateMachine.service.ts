@@ -91,8 +91,8 @@ export class SessionStateMachine{
     const map = {
       NONE: ["CREATING"],
       CREATING: ['STARTING',"CANCELED"],
-      STARTING: ['RUNNING'],
-      RUNNING: ['FINISHED'],
+      STARTING: ['RUNNING', "CANCELED"],
+      RUNNING: ['FINISHED', "CANCELED"],
       FINISHED: [],
       CANCELED: [],
     };

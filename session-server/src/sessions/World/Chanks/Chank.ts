@@ -15,9 +15,6 @@ export class Chank{
     worldToLocal(wx: number, wz: number) {
         const lx = wx - this.x * this.size;
         const lz = wz - this.z * this.size;
-        console.log("SIZE:", this.size);
-        console.log("CHUNK:", this.x, this.z);
-        console.log("WORLD:", wx, wz);
         return { lx, lz };
     }
 

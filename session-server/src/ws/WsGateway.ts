@@ -16,6 +16,7 @@ import { ClientConnection } from './Types/ClientConnection';
 import { WsMessageRouter } from './MessageRouter/WsMessageRouter';
 import { RequestManager } from 'src/Services/RequestManager';
 import { WsmessageRouterMiddleware } from './Midleware/WsMessageRouterMiddleware/WsMessageRouterMiddleware';
+import { DisconnectMidleware } from './Midleware/ClientDisconectMidleware/ClientDisconetcMidelware';
 
 @WebSocketGateway({
   path: '/ws',
@@ -31,7 +32,8 @@ export class WsGateway implements OnGatewayConnection {
     private readonly parseMessaage: parseMessageMiddleware,
     private readonly PingPong: PingPongMiddleware,
     private readonly sessionManager: SesionManager,
-    private readonly messageRouter: WsmessageRouterMiddleware
+    private readonly messageRouter: WsmessageRouterMiddleware,
+    private readonly useDisconnect: DisconnectMidleware
   ){}
 
   async handleConnection(ws: WebSocket, req) {
@@ -67,6 +69,12 @@ export class WsGateway implements OnGatewayConnection {
     });
 
     ws.on('close',async ()=>{
+
+        await this.wsMiddleware.run(ctx,[
+          this.useDisconnect
+        ])
+
+        console.log(ctx.userId, " дисконектнулся");
         this.sessionManager.removeClient(ctx.sessionId!, ctx.userId!)
         connection.router.destroy?.();
     })

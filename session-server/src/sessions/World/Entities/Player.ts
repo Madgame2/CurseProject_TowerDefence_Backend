@@ -1,9 +1,12 @@
 import { Vector3 } from "src/types/Vector3";
 import { NavAgent } from "../NavSystem/NavAgent";
+import { EventAgent } from "../EventAgent/EventAgent";
 
 export enum PlayerStates {
     IDEL = "IDEL",
-    RUNING = "RUNING"
+    RUNING = "RUNING",
+    IN_RUNNING_BUILD = "IN_RUNNING_BUILD",
+    BLOCKED_ADN_HIDE = "BLOCKED_ADN_HIDE"
 }
 
 export class Player {
@@ -23,12 +26,13 @@ export class Player {
     state: PlayerStates;
 
     navAgent: NavAgent
+    eventAgent: EventAgent
 
 
-
-    constructor(id: string,navAgent: NavAgent ) {
+    constructor(id: string,navAgent: NavAgent, eventAgent: EventAgent ) {
         this.id = id;
         this.navAgent = navAgent
+        this.eventAgent = eventAgent;
 
         this.position = new Vector3(0, 0, 0);
         this.velocity = new Vector3(0, 0, 0);

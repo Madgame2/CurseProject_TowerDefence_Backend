@@ -19,6 +19,26 @@ export class WorldQuery{
         return BlockRegistry.get(blockId) ?? BlockRegistry.get(0)!;
     }
 
+    getChankPos(x: number, z: number): Vector2{
+        const chunk = this.world.chankManager.getChunkByWorldPos(x, z);
+        return  new Vector2 (chunk.x, chunk.z);
+    }
+
+    
+    getlocalBlockPos(x: number, z: number): Vector2{
+        const chunk = this.world.chankManager.getChunkByWorldPos(x, z);
+        const { lx, lz } = chunk.worldToLocal(x, z);
+        return  new Vector2 (lx, lz);
+    }
+
+    setBlock(x: number, z: number, blockId:number) {
+        const chunk = this.world.chankManager.getChunkByWorldPos(x, z);
+
+        const { lx, lz } = chunk.worldToLocal(x, z);
+
+        chunk.setBlock(lx, lz, blockId);
+    }
+
     isPositionFree(pos: Vector2): boolean {
 
         const feet = this.getBlock(pos.x, pos.y)
@@ -36,7 +56,6 @@ export class WorldQuery{
             0,
             basePos.y + offsetZ
         )
-        console.log("pos: ", pos);
 
         if (this.isPositionFree(pos)) {
             return pos

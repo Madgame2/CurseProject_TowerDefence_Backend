@@ -21,7 +21,7 @@ export class NavAgent {
         if (!this.target) return;
         this.path = this.pathfinder.findPath(currentPosition, this.target);
 
-        console.log(this.path);
+        //console.log(this.path);
         this.curentIndex = 0;
         this.needsRepath = false;
     }
