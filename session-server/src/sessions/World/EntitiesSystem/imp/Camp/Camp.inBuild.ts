@@ -1,16 +1,14 @@
-import { Vector2 } from "src/types/Vector2";
-import { IEntity } from "../../IEntity";
-import { EntityState } from "../../EntityState";
-import { EntityesEnum } from "../../EntityesEnum";
+import { EntityesEnum } from "../../EntityesEnum"
+import { IEntity } from "../../IEntity"
+import { Vector2 } from "src/types/Vector2"
 
 
-
-export class GrossCannonInBuild implements IEntity{
+export class CampInBuild implements IEntity{
     Id:string
     linkedPalyer: string
     inBuildProgeress:number
     buildCosst: number
-    type: EntityesEnum = EntityesEnum.GrossCannonInBuild;
+    type: EntityesEnum = EntityesEnum.CampInBuild;
 
     position: Vector2
 
@@ -29,7 +27,7 @@ export class GrossCannonInBuild implements IEntity{
         this.position = WorldPos;
     }
 
-    onCompleted?: (entity: GrossCannonInBuild) => void
+    onCompleted?: (entity: CampInBuild) => void
 
     getState() {
         return  {

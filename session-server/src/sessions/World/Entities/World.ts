@@ -52,6 +52,10 @@ export class World{
         this.entityFactory = entityFactory
     }
 
+    getAllEnity():IEntity[]{
+        return Array.from( this.Entities.values());
+    }
+
     addEnity(entity: IEntity){
         this.Entities.set(entity.Id, entity);
     }

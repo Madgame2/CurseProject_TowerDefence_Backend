@@ -5,12 +5,12 @@ import { EntityesEnum } from "../../EntityesEnum";
 
 
 
-export class GrossCannonInBuild implements IEntity{
+export class TeslaTowerInBuild implements IEntity{
     Id:string
     linkedPalyer: string
     inBuildProgeress:number
     buildCosst: number
-    type: EntityesEnum = EntityesEnum.GrossCannonInBuild;
+    type: EntityesEnum = EntityesEnum.TeslaTowerBuild;
 
     position: Vector2
 
@@ -29,7 +29,7 @@ export class GrossCannonInBuild implements IEntity{
         this.position = WorldPos;
     }
 
-    onCompleted?: (entity: GrossCannonInBuild) => void
+    onCompleted?: (entity: TeslaTowerInBuild) => void
 
     getState() {
         return  {
@@ -40,7 +40,7 @@ export class GrossCannonInBuild implements IEntity{
     update(delta: number) {
         if (this._isCompleted) return;
 
-        const buildSpeed = this.buildCosst / 10; // 10 секунд
+        const buildSpeed = this.buildCosst / 5; // 10 секунд
 
         this.inBuildProgeress += buildSpeed * delta;
 

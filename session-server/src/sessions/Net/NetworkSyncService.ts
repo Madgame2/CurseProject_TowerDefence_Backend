@@ -5,7 +5,7 @@ import { time } from "console";
 import { PlayerState } from "./models/PlayerState";
 import { WorldUpdatesStorage } from "./models/WorldUpdateStorage";
 import { ChankUpdate } from "./models/ChankUpdate";
-import { EnityEvent } from "./models/EnityState";
+import { EnityEvent, EntityEventType } from "./models/EnityState";
 
 
 export class NetworkSysncService{
@@ -19,6 +19,7 @@ export class NetworkSysncService{
     ){}
 
     update(delta: number) {
+        console.log("ОТПРАВИЛ ДАНЫНЕ");
         this.accumulator += delta;
         if (this.accumulator >= this.interval) {
             this.accumulator = 0;
@@ -59,6 +60,18 @@ export class NetworkSysncService{
                 break;
             }
         }
+    }
+    for(const enitity of this.session.world.getAllEnity()){
+        const payLoad =  enitity.getState()
+
+        const newmessage :EnityEvent = {
+            type: "Entity",
+            enventType: EntityEventType.UPDATE,
+            enityType: enitity.type,
+            enityId: enitity.Id,
+            data: payLoad
+        }
+        enitiesEvnets.push(newmessage);
     }
 
     // 2. Создаём ОДИН пакет со всеми игроками

@@ -6,7 +6,8 @@ import { EntityesEnum } from "src/sessions/World/EntitiesSystem/EntityesEnum";
 
 export enum EntityEventType{
     SPAWN = "SPAWN",
-    TERMINATE = "TERMINATE"
+    TERMINATE = "TERMINATE",
+    UPDATE = "UPDATE"
 }
 
 export interface EnityEvent extends IWorldUpdateState{
