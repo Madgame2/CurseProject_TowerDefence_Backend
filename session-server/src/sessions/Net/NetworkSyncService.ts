@@ -6,6 +6,8 @@ import { PlayerState } from "./models/PlayerState";
 import { WorldUpdatesStorage } from "./models/WorldUpdateStorage";
 import { ChankUpdate } from "./models/ChankUpdate";
 import { EnityEvent, EntityEventType } from "./models/EnityState";
+import { NpcUpdatePacket } from "./models/NpcUpdatepakcet";
+import { DireectorUpdatePacket } from "./models/DirectorUpdatePaket";
 
 
 export class NetworkSysncService{
@@ -19,7 +21,6 @@ export class NetworkSysncService{
     ){}
 
     update(delta: number) {
-        console.log("ОТПРАВИЛ ДАНЫНЕ");
         this.accumulator += delta;
         if (this.accumulator >= this.interval) {
             this.accumulator = 0;
@@ -32,10 +33,11 @@ export class NetworkSysncService{
     private broadcast() {
     const playersIds = this.session.onlinePlayersId;
 
-    // 1. Собираем состояния ВСЕХ игроков
     const playersStates: PlayerState[] = [];
     const chankUpdates: ChankUpdate[] =[]
     const enitiesEvnets: EnityEvent[] =[]
+    const npcUpdates: NpcUpdatePacket[] =[]
+    const directorUpdates: DireectorUpdatePacket[] =[]
     for (const playerId of playersIds) {
         const player = this.session.world.getPlayer(playerId);
         if (!player) continue;
@@ -59,6 +61,13 @@ export class NetworkSysncService{
                 enitiesEvnets.push(update as EnityEvent);
                 break;
             }
+            case "Npc":{
+                npcUpdates.push(update as NpcUpdatePacket);  
+                break;
+            }
+            case "Director":{
+                directorUpdates.push(update as DireectorUpdatePacket);
+            }
         }
     }
     for(const enitity of this.session.world.getAllEnity()){
@@ -79,7 +88,9 @@ export class NetworkSysncService{
         tick: this.session.currentTick,
         players: playersStates,
         chanks: chankUpdates,
-        enities: enitiesEvnets
+        enities: enitiesEvnets,
+        npc: npcUpdates,
+        director: directorUpdates
     });
 
     const serialized = JSON.stringify(paket);

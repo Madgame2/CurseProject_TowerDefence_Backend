@@ -7,11 +7,21 @@ export class TickLoop{
     constructor(private tickRate: number) {}
 
     start(onTick: (delta: number) => void) {
+
         const intervalMs = 1000 / this.tickRate;
 
+        let lastTime = performance.now();
+
         this.interval = setInterval(() => {
-            const deltaSeconds = intervalMs / 1000;
+
+            const now = performance.now();
+
+            const deltaSeconds = (now - lastTime) / 1000;
+
+            lastTime = now;
+
             onTick(deltaSeconds);
+
         }, intervalMs);
     }
 

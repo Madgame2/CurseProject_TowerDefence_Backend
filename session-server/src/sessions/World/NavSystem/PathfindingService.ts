@@ -39,8 +39,6 @@ export class PathfindingService  {
 
 
         while(!open.isEmpty()){
-
-            console.log("ПЫТАЮсь НАЙТИ ПУТЬ")
             const current = open.pop();
             if(!current) continue
 
@@ -162,8 +160,6 @@ private _hasLineOfSightImpl(a: Vector2, b: Vector2): boolean {
 
     let err = dx - dy;
 
-    console.log("LOS START", { x0, y0, x1, y1, dx, dy, sx, sy, err });
-
     let iter = 0;
     const MAX_ITER = 200; // safeguard
 
@@ -172,40 +168,23 @@ private _hasLineOfSightImpl(a: Vector2, b: Vector2): boolean {
         iter++;
 
         if (iter > MAX_ITER) {
-            console.log("❌ LOS BREAK (MAX_ITER)", {
-                x0, y0, x1, y1, err, dx, dy
-            });
             return false;
         }
 
-        console.log("STEP", {
-            iter,
-            pos: { x0, y0 },
-            target: { x1, y1 },
-            err
-        });
-
         // проверка блока
         const isFree = this.world.worldQuery.isPositionFree({ x: x0, y: y0 } as Vector2);
-        console.log("isFree:", isFree);
+
 
         if (!isFree) {
-            console.log("❌ BLOCKED at", x0, y0);
             return false;
         }
 
         // 🔥 условие выхода
         if (x0 === x1 && y0 === y1) {
-            console.log("✅ REACHED TARGET");
             break;
         }
 
         const e2 = 2 * err;
-
-        console.log("e2:", e2, "compare:", {
-            cond1: e2 > -dy,
-            cond2: e2 < dx
-        });
 
         let moved = false;
 
@@ -213,21 +192,16 @@ private _hasLineOfSightImpl(a: Vector2, b: Vector2): boolean {
             err -= dy;
             x0 += sx;
             moved = true;
-            console.log("➡️ MOVE X", { x0, err });
         }
 
         if (e2 < dx) {
             err += dx;
             y0 += sy;
             moved = true;
-            console.log("⬆️ MOVE Y", { y0, err });
         }
 
         // 🔥 КЛЮЧЕВАЯ ПРОВЕРКА
         if (!moved) {
-            console.log("💀 NO MOVEMENT DETECTED → infinite loop!", {
-                x0, y0, err, dx, dy, e2
-            });
             return false;
         }
     }
@@ -258,7 +232,6 @@ private _hasLineOfSightImpl(a: Vector2, b: Vector2): boolean {
         let current: Node | null = node;
 
         while (current) {
-            console.log("ВОСТАНАВЛИВАЮ ")
             path.push(current.pos);
 
             // 🔥 КЛЮЧЕВОЙ МОМЕНТ

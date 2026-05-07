@@ -10,20 +10,23 @@ export class WorldSimulationService{
     constructor(private world: World){}
 
     tick(delta: number) {
+        this.updateDirecror(delta)
         this.updateMovement(delta);
         this.updateEntities(delta);
     }
 
+    updateDirecror(delta:number){
+        this.world.directorSystem.Update(delta);
+    }
+
     updateEntities(delta:number){
         for(const entity of this.world.getAllEnity()){
-            console.log("ОБНОВИЛ СУЩНОСТИ");
             entity.update(delta);
         }
     }
 
     updateMovement(delta: number) {
             for (const player of this.world.getAllPlayers()) {
-                console.log("ОБНОВИЛ ДВИЖЕНИЕ");
                 if(player.state == PlayerStates.BLOCKED_ADN_HIDE) continue;
 
                 const agent = player.navAgent;

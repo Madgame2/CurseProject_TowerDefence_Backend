@@ -15,6 +15,7 @@ import { PathfindingService } from "./NavSystem/PathfindingService";
 import { BuildSystem } from "./BuildSystem/BuildSystem";
 import { WorldUpdatesStorage } from "../Net/models/WorldUpdateStorage";
 import { EntitiesFactory } from "./EntitiesSystem/EnitiesFactory";
+import { DirectorSystem } from "./DirectorSystem/DirectorSystem";
 
 
 @Injectable()
@@ -34,9 +35,10 @@ export class WorldFactory{
         const buildSystem = new BuildSystem(newWorld.worldQuery, newWorld)
         const worldUpdatesStoarage = new WorldUpdatesStorage
         const entityFactory = new EntitiesFactory
+        const directorSystem = new DirectorSystem(worldUpdatesStoarage);
 
         chankManager.worldQuery = newWorld.worldQuery;
-        newWorld.setSystems(chankManager,movementService,worldSimulationService,playerFactory,decorationGenerator, pathfindingService, buildSystem, worldUpdatesStoarage,entityFactory);
+        newWorld.setSystems(chankManager,movementService,worldSimulationService,playerFactory,decorationGenerator, pathfindingService, buildSystem, worldUpdatesStoarage,entityFactory, directorSystem);
         chankManager.preloadArea(0,0,4);
         const structEntity = decorationGenerator.PlaseRootHouse(RootHouse, 0,0);
         

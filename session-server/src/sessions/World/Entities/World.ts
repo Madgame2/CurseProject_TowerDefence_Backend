@@ -12,11 +12,16 @@ import { BuildSystem } from "../BuildSystem/BuildSystem";
 import { WorldUpdatesStorage } from "src/sessions/Net/models/WorldUpdateStorage";
 import { IEntity } from "../EntitiesSystem/IEntity";
 import { EntitiesFactory } from "../EntitiesSystem/EnitiesFactory";
+import { INpc } from "../npc/INpc";
+import { NpcEventType, NpcUpdatePacket } from "src/sessions/Net/models/NpcUpdatepakcet";
+import { Vector2 } from "src/types/Vector2";
+import { DirectorSystem } from "../DirectorSystem/DirectorSystem";
 
 export class World{
 
     private players = new Map<string, Player>();
     private Entities = new  Map<string, IEntity>()
+    private Npcs = new Map<string, INpc>()
 
     rootStruct!: StructureEntityWithHP;
 
@@ -30,6 +35,7 @@ export class World{
     builderSystem!: BuildSystem
     worldUpdatesStorage!: WorldUpdatesStorage
     entityFactory!:EntitiesFactory
+    directorSystem!: DirectorSystem
 
     setSystems(chankManager: ChankManager,
         movementService: MovementService,
@@ -39,7 +45,8 @@ export class World{
         pathfindingService: PathfindingService,
         builderSystem: BuildSystem,
         worldUpdatesStorage: WorldUpdatesStorage,
-        entityFactory:EntitiesFactory){
+        entityFactory:EntitiesFactory,
+        directorSystem: DirectorSystem){
 
         this.chankManager = chankManager;
         this.movementService = movementService;
@@ -50,7 +57,25 @@ export class World{
         this.builderSystem = builderSystem
         this.worldUpdatesStorage = worldUpdatesStorage
         this.entityFactory = entityFactory
+        this.directorSystem = directorSystem
     }
+
+    addNpc(npc: INpc){
+        this.Npcs.set(npc.id, npc);
+
+        const newPacket : NpcUpdatePacket ={
+            type: "Npc",
+            npcId: npc.id,
+            enventType: NpcEventType.SPAWN,
+            npcType: npc.type,
+            data:{
+                position: Vector2.zero(),
+                behaver: npc.behaverType
+            }
+        }
+        this.worldUpdatesStorage.add(newPacket);
+    }
+
 
     getAllEnity():IEntity[]{
         return Array.from( this.Entities.values());

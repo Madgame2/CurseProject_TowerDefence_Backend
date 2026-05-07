@@ -12,5 +12,5 @@ export const BlockRegistry = new Map<number, Block>([
     [7, new Block(7, true) ],   //TeslaTower
     [8, new Block(8, false)],   //Camp Preview
     [9, new Block(9, true) ],   //Camp InBuidEntity
-    [10, new Block(10, true) ]    //Camp
+    [10, new Block(10, false) ]    //Camp
 ]);

@@ -13,6 +13,9 @@ import { WorldFactory } from "src/sessions/World/worldFactory";
 import { PlayerEventBinder } from "src/sessions/PlayerEventBinder/PlayerEventBinder";
 import { Player } from "src/sessions/World/Entities/Player";
 import { NetworkSysncService } from "src/sessions/Net/NetworkSyncService";
+import { NpcFactory } from "src/sessions/World/npc/Factory/NpcFactory";
+import { NpcTypes } from "src/sessions/World/npc/NpcTypes.enum";
+import { BehaviorTypes } from "src/sessions/World/npc/BehaviorTypes.enum";
 
 export class Session extends EventEmitter{
     SessionID!: string;
@@ -173,6 +176,13 @@ export class Session extends EventEmitter{
     }
 
     private startTickLoop() {
+
+        setTimeout(()=>{
+            const factory = new NpcFactory;
+            const npc = factory.create(NpcTypes.SKELETON,BehaviorTypes.ENEMY);
+            this.world.addNpc(npc);
+        },10000);
+
         this.tickLoop.start((delta) => { 
             this.currentTick++;
 
