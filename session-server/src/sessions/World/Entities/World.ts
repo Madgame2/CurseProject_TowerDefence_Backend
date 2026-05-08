@@ -16,6 +16,7 @@ import { INpc } from "../npc/INpc";
 import { NpcEventType, NpcUpdatePacket } from "src/sessions/Net/models/NpcUpdatepakcet";
 import { Vector2 } from "src/types/Vector2";
 import { DirectorSystem } from "../DirectorSystem/DirectorSystem";
+import { WaveSpawner } from "../WaveSpawner/WaveSpawner";
 
 export class World{
 
@@ -36,6 +37,7 @@ export class World{
     worldUpdatesStorage!: WorldUpdatesStorage
     entityFactory!:EntitiesFactory
     directorSystem!: DirectorSystem
+    waveSpawner!: WaveSpawner
 
     setSystems(chankManager: ChankManager,
         movementService: MovementService,
@@ -46,7 +48,8 @@ export class World{
         builderSystem: BuildSystem,
         worldUpdatesStorage: WorldUpdatesStorage,
         entityFactory:EntitiesFactory,
-        directorSystem: DirectorSystem){
+        directorSystem: DirectorSystem,
+        waveSpawner: WaveSpawner){
 
         this.chankManager = chankManager;
         this.movementService = movementService;
@@ -58,8 +61,22 @@ export class World{
         this.worldUpdatesStorage = worldUpdatesStorage
         this.entityFactory = entityFactory
         this.directorSystem = directorSystem
+        this.waveSpawner  =waveSpawner
     }
 
+
+    getNpcsInRegion(center: Vector2, radius: number): INpc[] {
+
+        const r2 = radius * radius;
+
+        return Array.from(this.Npcs.values()).filter(npc => {
+
+            const dx = npc.position.x - center.x;
+            const dy = npc.position.y - center.y;
+
+            return (dx * dx + dy * dy) <= r2;
+        });
+    }
     addNpc(npc: INpc){
         this.Npcs.set(npc.id, npc);
 
@@ -69,13 +86,16 @@ export class World{
             enventType: NpcEventType.SPAWN,
             npcType: npc.type,
             data:{
-                position: Vector2.zero(),
+                position: npc.position,
                 behaver: npc.behaverType
             }
         }
         this.worldUpdatesStorage.add(newPacket);
     }
 
+    getAllNpc():INpc[]{
+        return Array.from(this.Npcs.values());
+    }
 
     getAllEnity():IEntity[]{
         return Array.from( this.Entities.values());

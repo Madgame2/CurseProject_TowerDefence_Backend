@@ -176,13 +176,6 @@ export class Session extends EventEmitter{
     }
 
     private startTickLoop() {
-
-        setTimeout(()=>{
-            const factory = new NpcFactory;
-            const npc = factory.create(NpcTypes.SKELETON,BehaviorTypes.ENEMY);
-            this.world.addNpc(npc);
-        },10000);
-
         this.tickLoop.start((delta) => { 
             this.currentTick++;
 

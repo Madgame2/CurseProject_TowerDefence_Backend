@@ -6,14 +6,18 @@ import { npcConfigs } from "../npcConfigs";
 import { INpcBehavior } from "../INpcBehavior";
 import { EnemyBehavior } from "../Behaviors/Enemy.behavior";
 import { Npc } from "../Npc";
+import { NavAgent } from "../../NavSystem/NavAgent";
+import { PathfindingService } from "../../NavSystem/PathfindingService";
 
 
 export class NpcFactory{
  
+    constructor(private pathFindingService: PathfindingService){}
     create(type: NpcTypes, behaviorType: BehaviorTypes): INpc {
 
         const id = randomUUID();
         const config = npcConfigs[type];
+        const navAgent = new NavAgent(this.pathFindingService);
         const behavior = this.createBehavior(behaviorType);
 
         return new Npc(
@@ -21,13 +25,15 @@ export class NpcFactory{
             type,
             config,
             behaviorType,
-            behavior
+            behavior,
+            navAgent
         );
     }
 
     private createBehavior(type: BehaviorTypes): INpcBehavior {
         switch (type) {
             case BehaviorTypes.ENEMY:
+                
                 return new EnemyBehavior();
 
             case BehaviorTypes.NEITRALL:

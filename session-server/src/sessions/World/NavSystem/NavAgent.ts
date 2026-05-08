@@ -3,56 +3,80 @@ import { PathfindingService } from "./PathfindingService";
 
 
 export class NavAgent {
-    path?: Vector2[];
-    curentIndex?: number
-    target: Vector2|null = null;
+    public path?: Vector2[];
+    public currentIndex = 0;
 
-    needsRepath: boolean  = false;
+    private target?: Vector2;
+    needsRepath = false;
 
     constructor(private pathfinder: PathfindingService) {}
 
-    setTarget(position: Vector2){
-        this.target = position;
+    setTarget(target: Vector2) {
+        this.target = target;
         this.needsRepath = true;
     }
 
-
-    recalculatePath(currentPosition: Vector2) {
-        if (!this.target) return;
-        this.path = this.pathfinder.findPath(currentPosition, this.target);
-
-        //console.log(this.path);
-        this.curentIndex = 0;
-        this.needsRepath = false;
-    }
-
-
     update(currentPosition: Vector2): Vector2 | null {
+
+
         if (this.needsRepath) {
-            this.recalculatePath(currentPosition);
+            //this.recalculatePath(currentPosition);
         }
+
         if (!this.path || this.path.length === 0) {
             return null;
         }
 
+        if (this.currentIndex >= this.path.length) {
+            this.path = undefined;
 
-    while (this.curentIndex! < this.path.length) {
-            const targetPoint = this.path[this.curentIndex!];
-
-            const dx = targetPoint.x - currentPosition.x;
-            const dy = targetPoint.y - currentPosition.y;
-
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < 0.01) {
-                this.curentIndex!++;
-                continue;
-            }
-
-            return new Vector2(dx / dist, dy / dist);
+            return null;
         }
 
-        this.path = undefined;
-        return null;
+        const point = this.path[this.currentIndex];
+
+        const direction = Vector2.subtract(point, currentPosition);
+
+        const distanceSq = direction.lengthSquared();
+
+        // waypoint достигнут
+        if (distanceSq <= 0.1) {
+
+            this.currentIndex++;
+
+            // путь закончился
+            if (this.currentIndex >= this.path.length) {
+
+                this.path = undefined;
+
+                return null;
+            }
+
+            const nextPoint = this.path[this.currentIndex];
+
+            return Vector2.subtract(
+                nextPoint,
+                currentPosition
+            ).normalize();
+        }
+
+        return direction.normalize();
+    }
+
+
+    public recalculatePath(currentPosition: Vector2) {
+
+        if (!this.target) {
+            return;
+        }
+
+        this.path = this.pathfinder.findPath(currentPosition, this.target);
+
+        this.currentIndex = 0;
+        this.needsRepath = false;
+    }
+
+    hasPath(): boolean {
+        return !!this.path;
     }
 }

@@ -9,6 +9,34 @@ export class WorldQuery{
 
     constructor(private world: World){}
 
+    
+
+
+
+getRandomSpawnAround(
+    center: Vector2,
+    minRadius: number,
+    maxRadius: number
+): Vector2 {
+
+    const angle = Math.random() * Math.PI * 2;
+
+    // случайная дистанция
+    // но не меньше minRadius
+    const distance =
+        minRadius +
+        Math.random() * (maxRadius - minRadius);
+
+    return {
+        x: center.x + Math.cos(angle) * distance,
+        y: center.y + Math.sin(angle) * distance
+    } as Vector2;
+}
+
+    getRootHousePos():Vector2{
+        return this.world.rootStruct.position;
+    }
+
     getBlock(x: number, z: number): Block {
         const chunk = this.world.chankManager.getChunkByWorldPos(x, z);
 
@@ -57,7 +85,7 @@ export class WorldQuery{
             basePos.y + offsetZ
         )
 
-        if (this.isPositionFree(pos)) {
+        if (this.isPositionFree(basePos)) {
             return pos
         }
     }

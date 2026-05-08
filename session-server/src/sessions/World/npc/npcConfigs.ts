@@ -6,7 +6,7 @@ export const npcConfigs: Record<NpcTypes, NpcConfig> = {
     [NpcTypes.SKELETON]: {
         hp: 50,
         damage: 10,
-        speed: 2
+        speed: 0.5
     },
     [NpcTypes.KNIGHT]: {
         hp: 120,

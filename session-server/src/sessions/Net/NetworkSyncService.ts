@@ -6,7 +6,7 @@ import { PlayerState } from "./models/PlayerState";
 import { WorldUpdatesStorage } from "./models/WorldUpdateStorage";
 import { ChankUpdate } from "./models/ChankUpdate";
 import { EnityEvent, EntityEventType } from "./models/EnityState";
-import { NpcUpdatePacket } from "./models/NpcUpdatepakcet";
+import { NpcEventType, NpcUpdatePacket } from "./models/NpcUpdatepakcet";
 import { DireectorUpdatePacket } from "./models/DirectorUpdatePaket";
 
 
@@ -81,6 +81,21 @@ export class NetworkSysncService{
             data: payLoad
         }
         enitiesEvnets.push(newmessage);
+    }
+    for(const npc of this.session.world.getAllNpc()){
+        const pakcet :NpcUpdatePacket= {
+            type: "Npc",
+            npcId: npc.id,
+            npcType: npc.type,
+            enventType: NpcEventType.UPDATE,
+            data:{
+                position: npc.position,
+                rotation: npc.rotation,
+                velocity: npc.velocity
+            }
+        }
+
+        npcUpdates.push(pakcet);
     }
 
     // 2. Создаём ОДИН пакет со всеми игроками

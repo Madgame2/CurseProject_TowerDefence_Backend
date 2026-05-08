@@ -16,6 +16,8 @@ import { BuildSystem } from "./BuildSystem/BuildSystem";
 import { WorldUpdatesStorage } from "../Net/models/WorldUpdateStorage";
 import { EntitiesFactory } from "./EntitiesSystem/EnitiesFactory";
 import { DirectorSystem } from "./DirectorSystem/DirectorSystem";
+import { WaveSpawner } from "./WaveSpawner/WaveSpawner";
+import { NpcFactory } from "./npc/Factory/NpcFactory";
 
 
 @Injectable()
@@ -35,10 +37,12 @@ export class WorldFactory{
         const buildSystem = new BuildSystem(newWorld.worldQuery, newWorld)
         const worldUpdatesStoarage = new WorldUpdatesStorage
         const entityFactory = new EntitiesFactory
-        const directorSystem = new DirectorSystem(worldUpdatesStoarage);
+        const npcFactory = new NpcFactory(pathfindingService);
+        const waveSpawner = new WaveSpawner(npcFactory,newWorld)
+        const directorSystem = new DirectorSystem(worldUpdatesStoarage,waveSpawner,newWorld.worldQuery);
 
         chankManager.worldQuery = newWorld.worldQuery;
-        newWorld.setSystems(chankManager,movementService,worldSimulationService,playerFactory,decorationGenerator, pathfindingService, buildSystem, worldUpdatesStoarage,entityFactory, directorSystem);
+        newWorld.setSystems(chankManager,movementService,worldSimulationService,playerFactory,decorationGenerator, pathfindingService, buildSystem, worldUpdatesStoarage,entityFactory, directorSystem,waveSpawner);
         chankManager.preloadArea(0,0,4);
         const structEntity = decorationGenerator.PlaseRootHouse(RootHouse, 0,0);
         

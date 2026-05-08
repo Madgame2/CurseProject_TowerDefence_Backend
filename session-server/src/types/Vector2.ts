@@ -41,6 +41,10 @@ export class Vector2 {
         return new Vector2(this.x, this.y);
     }
 
+
+    lengthSquared(): number {
+        return this.x * this.x + this.y * this.y;
+    }
     // ===== STATIC =====
 
     static add(a: Vector2, b: Vector2): Vector2 {

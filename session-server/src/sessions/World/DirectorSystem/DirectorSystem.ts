@@ -1,5 +1,10 @@
 import { DireectorUpdatePacket } from "src/sessions/Net/models/DirectorUpdatePaket";
 import { WorldUpdatesStorage } from "src/sessions/Net/models/WorldUpdateStorage";
+import { WaveSpawner } from "../WaveSpawner/WaveSpawner";
+import { EnemySpawnData, WaveConfig } from "../WaveSpawner/WaveConfig";
+import { WorldQuery } from "../worldQuery/WorldQuery";
+import { Vector2 } from "src/types/Vector2";
+import { NpcTypes } from "../npc/NpcTypes.enum";
 
 
 enum DirectorState {
@@ -17,7 +22,7 @@ export class DirectorSystem{
 
     public phase: MatchPhase = MatchPhase.PREPARATION;
 
-    public wave: number = 1;
+    public wave: number = 0;
 
 
     private state: DirectorState = DirectorState.WAITING_START;
@@ -26,7 +31,9 @@ export class DirectorSystem{
     private phaseTimer: number = 0;
 
 
-    constructor(private eventBus: WorldUpdatesStorage){}
+    constructor(private eventBus: WorldUpdatesStorage,
+        private waveSpawner: WaveSpawner,
+        private worldQuery:WorldQuery  ){}
 
 
     Update(delta: number){
@@ -73,7 +80,6 @@ export class DirectorSystem{
     private updateGame(delta){
         this.phaseTimer -= delta;
 
-        console.log(this.phaseTimer);
         if (this.phaseTimer <= 0) {
             switch (this.phase) {
                 case MatchPhase.PREPARATION:
@@ -89,6 +95,9 @@ export class DirectorSystem{
 
         this.wave++;
 
+        const config = this.getConfig(this.wave);
+        this.waveSpawner.startWave(config);
+
         const message : DireectorUpdatePacket ={
             type: "Director",
             matchPahase: this.phase,
@@ -97,5 +106,42 @@ export class DirectorSystem{
             }
         }
         this.eventBus.add(message);
+    }
+
+    getConfig(waveNum: number):WaveConfig{
+
+        let enemies :EnemySpawnData[] = [];
+        const enemyCount = 5 + waveNum * 2;
+
+        const rootHouseCenter = this.worldQuery.getRootHousePos();
+
+        const spwawnPointCounts = Math.floor( 1 + waveNum*0.25);
+
+        const spawnpoints: Vector2[] =[]
+        for(let i = 0; i< spwawnPointCounts; i++){
+            const spawnPoint = this.worldQuery.getRandomSpawnAround(rootHouseCenter,50,70);
+            spawnpoints.push(spawnPoint);
+        }
+
+
+        for(let i=0; i<enemyCount;){
+            for(const spawnPoint of spawnpoints){
+                if(i>=enemyCount) break;
+
+                const enemySpawnPos = this.worldQuery.getRandomSpawnAround(spawnPoint,0, 10);
+                let type = NpcTypes.SKELETON;
+
+                enemies.push({
+                    type: type,
+                    position: enemySpawnPos 
+                })
+                i++;
+            }
+        }
+
+        return {
+            enemies: enemies,
+            spawnDelay: 2
+        }
     }
 }

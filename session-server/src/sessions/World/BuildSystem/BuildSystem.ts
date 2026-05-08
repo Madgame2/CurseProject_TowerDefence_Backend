@@ -29,12 +29,11 @@ export class BuildSystem{
     async PreperForBuilding(playerID:string ,worldPos: Vector2, buildNetId: number){
         if(!this.worldQuery.isPositionFree(worldPos)) return;
 
-        console.log(buildNetId);
         this._buildingUnderConstraction.set(playerID,{pos: worldPos, buildId:buildNetId});
         this.worldQuery.setBlock(worldPos.x,worldPos.y, buildNetId);
 
         const player = this.world.getPlayer(playerID);
-        console.log(worldPos);
+
         player?.navAgent.setTarget(worldPos);
         player!.state = PlayerStates.IN_RUNNING_BUILD;
 
@@ -45,11 +44,12 @@ export class BuildSystem{
             cellData: buildNetId
         }
 
-        console.log(UpdateWorlddata);
         this.world.worldUpdatesStorage.add(UpdateWorlddata);
 
         const result = await this.waitUntilGetClose(player!, worldPos, 1)
+        console.log(result);
         if(result){
+            console.log("ДОЛЖЕН НАЧАТЬ СТРОИТЬ")
             this.startBuilding(playerID, worldPos, buildNetId)
         }else{
             this.CancelPrepearingForBuilding(playerID)
@@ -295,7 +295,6 @@ export class BuildSystem{
         const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
         while (true) {
-
             console.log("player: ", player.position, " target: ",targetPos);
             const playerPos = new Vector2(player.position.x, player.position.z);
             const distance = Vector2.subtract(playerPos, targetPos).length();
