@@ -10,7 +10,9 @@ export class WorldQuery{
     constructor(private world: World){}
 
     
-
+    getRootHouseObj(){
+        return this.world.rootStruct;
+    }
 
 
 getRandomSpawnAround(

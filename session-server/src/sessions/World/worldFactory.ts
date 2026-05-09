@@ -37,7 +37,7 @@ export class WorldFactory{
         const buildSystem = new BuildSystem(newWorld.worldQuery, newWorld)
         const worldUpdatesStoarage = new WorldUpdatesStorage
         const entityFactory = new EntitiesFactory
-        const npcFactory = new NpcFactory(pathfindingService);
+        const npcFactory = new NpcFactory(pathfindingService, newWorld.worldQuery);
         const waveSpawner = new WaveSpawner(npcFactory,newWorld)
         const directorSystem = new DirectorSystem(worldUpdatesStoarage,waveSpawner,newWorld.worldQuery);
 

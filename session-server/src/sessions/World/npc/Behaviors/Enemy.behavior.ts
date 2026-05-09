@@ -3,17 +3,20 @@ import { NavAgent } from "../../NavSystem/NavAgent";
 import { INpc } from "../INpc";
 import { INpcBehavior } from "../INpcBehavior";
 import { Vector3 } from "src/types/Vector3";
+import { IInteractable } from "../../EntitiesSystem/IInteractable";
+import { WorldQuery } from "../../worldQuery/WorldQuery";
 
 export class EnemyBehavior implements INpcBehavior{
     
-    private  targetInited:boolean = false
+    private  targetSelected:boolean = false
 
+    constructor(private worldQwert: WorldQuery){}
     
     update(npc: INpc, delta: number): void {
 
-        if (!this.targetInited) {
-            npc.navAgent.setTarget(Vector2.zero());
-            this.targetInited = true;
+        if (!this.targetSelected) {
+            const rootObj = this.worldQwert.getRootHouseObj();
+            this.SetTarget(npc,rootObj);
         }
 
         const direction = npc.navAgent.update(npc.position);
@@ -24,6 +27,31 @@ export class EnemyBehavior implements INpcBehavior{
         }
 
         this.move(npc, direction, delta);
+    }
+
+    private SetTarget(npc: INpc,target:IInteractable ){
+
+        const points = target.getInteractionPoints();
+        if(!points) return;
+
+        let closest = points[0];
+        let closestDist = Infinity;
+
+        for (const point of points) {
+
+            const dist = Vector2.distance(
+                npc.position,
+                point
+            );
+
+            if (dist < closestDist) {
+                closest = point;
+                closestDist = dist;
+            }
+        }
+
+        npc.navAgent.setTarget(closest);
+        this.targetSelected = true;
     }
 
     private move(
