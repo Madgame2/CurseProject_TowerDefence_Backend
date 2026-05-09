@@ -43,7 +43,6 @@ export class DirectorSystem{
             case DirectorState.WAITING_START:
 
                 this.startDelay -= delta;
-                console.log(this.startDelay);
                 if (this.startDelay <= 0) {
                     this.startGame();
                 }

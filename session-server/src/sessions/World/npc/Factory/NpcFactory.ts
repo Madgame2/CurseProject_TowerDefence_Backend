@@ -9,11 +9,14 @@ import { Npc } from "../Npc";
 import { NavAgent } from "../../NavSystem/NavAgent";
 import { PathfindingService } from "../../NavSystem/PathfindingService";
 import { WorldQuery } from "../../worldQuery/WorldQuery";
+import { WorldUpdatesStorage } from "src/sessions/Net/models/WorldUpdateStorage";
 
 
 export class NpcFactory{
  
-    constructor(private pathFindingService: PathfindingService, private worldQwery: WorldQuery){}
+    constructor(private pathFindingService: PathfindingService,
+         private worldQwery: WorldQuery,
+        private eventBus: WorldUpdatesStorage){}
     create(type: NpcTypes, behaviorType: BehaviorTypes): INpc {
 
         const id = randomUUID();
@@ -35,7 +38,7 @@ export class NpcFactory{
         switch (type) {
             case BehaviorTypes.ENEMY:
                 
-                return new EnemyBehavior(this.worldQwery);
+                return new EnemyBehavior(this.worldQwery,this.eventBus);
 
             case BehaviorTypes.NEITRALL:
                 //return new NeutralBehavior();

@@ -6,7 +6,7 @@ import { PlayerState } from "./models/PlayerState";
 import { WorldUpdatesStorage } from "./models/WorldUpdateStorage";
 import { ChankUpdate } from "./models/ChankUpdate";
 import { EnityEvent, EntityEventType } from "./models/EnityState";
-import { NpcEventType, NpcUpdatePacket } from "./models/NpcUpdatepakcet";
+import { DataType, NpcEventType, NpcUpdatePacket } from "./models/NpcUpdatepakcet";
 import { DireectorUpdatePacket } from "./models/DirectorUpdatePaket";
 
 
@@ -31,91 +31,92 @@ export class NetworkSysncService{
 
 
     private broadcast() {
-    const playersIds = this.session.onlinePlayersId;
+        const playersIds = this.session.onlinePlayersId;
 
-    const playersStates: PlayerState[] = [];
-    const chankUpdates: ChankUpdate[] =[]
-    const enitiesEvnets: EnityEvent[] =[]
-    const npcUpdates: NpcUpdatePacket[] =[]
-    const directorUpdates: DireectorUpdatePacket[] =[]
-    for (const playerId of playersIds) {
-        const player = this.session.world.getPlayer(playerId);
-        if (!player) continue;
+        const playersStates: PlayerState[] = [];
+        const chankUpdates: ChankUpdate[] =[]
+        const enitiesEvnets: EnityEvent[] =[]
+        const npcUpdates: NpcUpdatePacket[] =[]
+        const directorUpdates: DireectorUpdatePacket[] =[]
+        for (const playerId of playersIds) {
+            const player = this.session.world.getPlayer(playerId);
+            if (!player) continue;
 
-        playersStates.push({
-            type: "playerState",
-            id: player.id,
-            position: player.position,
-            rotation: player.rotation,
-            state: player.state,
-            velocity: player.velocity
+            playersStates.push({
+                type: "playerState",
+                id: player.id,
+                position: player.position,
+                rotation: player.rotation,
+                state: player.state,
+                velocity: player.velocity
+            });
+        }
+        for(let update of this.session.world.worldUpdatesStorage.getAll()){
+            switch(update.type){
+                case "chunk":{
+                    chankUpdates.push(update as ChankUpdate);
+                    break;
+                }
+                case "Entity":{
+                    enitiesEvnets.push(update as EnityEvent);
+                    break;
+                }
+                case "Npc":{
+                    npcUpdates.push(update as NpcUpdatePacket);  
+                    break;
+                }
+                case "Director":{
+                    directorUpdates.push(update as DireectorUpdatePacket);
+                }
+            }
+        }
+        for(const enitity of this.session.world.getAllEnity()){
+            const payLoad =  enitity.getState()
+
+            const newmessage :EnityEvent = {
+                type: "Entity",
+                enventType: EntityEventType.UPDATE,
+                enityType: enitity.type,
+                enityId: enitity.Id,
+                data: payLoad
+            }
+            enitiesEvnets.push(newmessage);
+        }
+        for(const npc of this.session.world.getAllNpc()){
+            const pakcet :NpcUpdatePacket= {
+                type: "Npc",
+                npcId: npc.id,
+                npcType: npc.type,
+                enventType: NpcEventType.UPDATE,
+                data:{
+                    dataType: DataType.NPC_STATE,
+                    position: npc.position,
+                    rotation: npc.rotation,
+                    velocity: npc.velocity
+                }
+            }
+
+            npcUpdates.push(pakcet);
+        }
+
+        // 2. Создаём ОДИН пакет со всеми игроками
+        const paket: WorldUpdatePaket = new WorldUpdatePaket({
+            tick: this.session.currentTick,
+            players: playersStates,
+            chanks: chankUpdates,
+            enities: enitiesEvnets,
+            npc: npcUpdates,
+            director: directorUpdates
         });
-    }
-    for(let update of this.session.world.worldUpdatesStorage.getAll()){
-        switch(update.type){
-            case "chunk":{
-                chankUpdates.push(update as ChankUpdate);
-                break;
-            }
-            case "Entity":{
-                enitiesEvnets.push(update as EnityEvent);
-                break;
-            }
-            case "Npc":{
-                npcUpdates.push(update as NpcUpdatePacket);  
-                break;
-            }
-            case "Director":{
-                directorUpdates.push(update as DireectorUpdatePacket);
-            }
+
+        const serialized = JSON.stringify(paket);
+
+        // 3. Отправляем его КАЖДОМУ клиенту
+        for (const playerId of playersIds) {
+            const clientConnection = this.playersregisty.getClient(playerId);
+            if (!clientConnection) continue;
+
+            clientConnection.ctx.ws.send(serialized);
         }
     }
-    for(const enitity of this.session.world.getAllEnity()){
-        const payLoad =  enitity.getState()
-
-        const newmessage :EnityEvent = {
-            type: "Entity",
-            enventType: EntityEventType.UPDATE,
-            enityType: enitity.type,
-            enityId: enitity.Id,
-            data: payLoad
-        }
-        enitiesEvnets.push(newmessage);
-    }
-    for(const npc of this.session.world.getAllNpc()){
-        const pakcet :NpcUpdatePacket= {
-            type: "Npc",
-            npcId: npc.id,
-            npcType: npc.type,
-            enventType: NpcEventType.UPDATE,
-            data:{
-                position: npc.position,
-                rotation: npc.rotation,
-                velocity: npc.velocity
-            }
-        }
-
-        npcUpdates.push(pakcet);
-    }
-
-    // 2. Создаём ОДИН пакет со всеми игроками
-    const paket: WorldUpdatePaket = new WorldUpdatePaket({
-        tick: this.session.currentTick,
-        players: playersStates,
-        chanks: chankUpdates,
-        enities: enitiesEvnets,
-        npc: npcUpdates,
-        director: directorUpdates
-    });
-
-    const serialized = JSON.stringify(paket);
-
-    // 3. Отправляем его КАЖДОМУ клиенту
-    for (const playerId of playersIds) {
-        const clientConnection = this.playersregisty.getClient(playerId);
-        if (!clientConnection) continue;
-
-        clientConnection.ctx.ws.send(serialized);
-    }
-}
 }

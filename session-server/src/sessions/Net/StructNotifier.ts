@@ -25,11 +25,11 @@ export class structNotifaer{
                 const area: Vector2[] = this.calculateArea(structObj, RootHouse);
 
                 return new RootHouseNofiyObject(
-                    structObj.id,
+                    structObj.Id,
                     RootHouse.id,
                     structObj.position,
                     area,
-                    (structObj as StructureEntityWithHP).hp
+                    (structObj as StructureEntityWithHP).current_hp
                 )
             }
         }

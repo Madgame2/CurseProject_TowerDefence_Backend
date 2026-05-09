@@ -8,6 +8,12 @@ export enum NpcEventType{
     UPDATE = "UPDATE"
 }
 
+export enum DataType{
+    NPC_STATE = "NPC_STATE",
+    ACTION = "ACTION"
+}
+
+
 export interface NpcUpdatePacket extends IWorldUpdateState{
     type: "Npc";
     npcId: string;

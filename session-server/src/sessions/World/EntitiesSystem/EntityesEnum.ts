@@ -1,6 +1,8 @@
 
 
 export enum EntityesEnum{
+    RootHouse = "RootHouse",
+
     GrossCannonInBuild = "GrossCannonInBuild",
     GrossCannon = "GrossCannon",
 

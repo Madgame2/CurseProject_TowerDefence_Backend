@@ -6,6 +6,7 @@ import { StructureEntity, StructureEntityWithHP } from "../Structures/StructureE
 import { Structure } from "../Structures/StructureModels";
 import { randomUUID } from "crypto";
 import { Console } from "console";
+import { EntityesEnum } from "../EntitiesSystem/EntityesEnum";
 
 export class DecorationGenerator {
 
@@ -35,10 +36,6 @@ export class DecorationGenerator {
             Math.floor(pos.x),
             Math.floor(pos.z)
         );
-        console.log("Структура размещенна");
-        console.log("ВОТ Е БЛОК", Math.floor(pos.x), " ",Math.floor(pos.z)  );
-        console.log(this.worldQuery.getBlock(Math.floor(pos.x),
-            Math.floor(pos.z)));
 
         if (!success) {
             console.warn("Не удалось разместить структуру");
@@ -47,6 +44,7 @@ export class DecorationGenerator {
         const EntityID = randomUUID();
         const entity = new StructureEntityWithHP(
             EntityID,
+            EntityesEnum.RootHouse,
             structure.id,
             new Vector2(Math.floor(pos.x),
             Math.floor(pos.z)),

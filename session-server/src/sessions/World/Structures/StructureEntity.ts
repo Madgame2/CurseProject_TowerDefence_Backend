@@ -1,24 +1,36 @@
 import { Vector2 } from "src/types/Vector2";
 import { IInteractable } from "../EntitiesSystem/IInteractable";
 import { StructureRegistry } from "./StructureRegistry";
+import { EntityesEnum } from "../EntitiesSystem/EntityesEnum";
+import { IAttackable } from "../EntitiesSystem/IAttackable";
+import { IEntity } from "../EntitiesSystem/IEntity";
 
 export class StructureEntity {
     constructor(
-        public id: string,
+        public Id: string,
+        public type: EntityesEnum,
         public StuructID: string,
         public position: Vector2,
     ) {}
 }
 
-export class StructureEntityWithHP extends StructureEntity implements IInteractable{
- constructor(
-        public id: string,
+export class StructureEntityWithHP extends StructureEntity implements IEntity , IInteractable, IAttackable{
+ 
+    max_hp: number;
+    constructor(
+        public Id: string,
+        public type: EntityesEnum,
         public StuructID: string,
         public position: Vector2,
-        public hp : number
+        public current_hp : number
  ){
-    super(id,StuructID,position);
+    super(Id,type,StuructID,position);
+    this.max_hp = current_hp
  }
+
+    takeDamage(amount: number): void {
+        this.current_hp -=amount;
+    }
 
     getInteractionPoints(): Vector2[] | null {
 
@@ -68,5 +80,17 @@ export class StructureEntityWithHP extends StructureEntity implements IInteracta
         }
 
         return Array.from(points.values());
+    }
+
+
+    update(delta: number) {
+        
+    }
+
+    getState() {
+        return   {
+            current_hp: this.current_hp,
+            health_present: this.current_hp/this.max_hp
+        }
     }
 }

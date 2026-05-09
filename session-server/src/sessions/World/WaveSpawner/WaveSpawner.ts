@@ -72,6 +72,5 @@ export class WaveSpawner {
         npc.position = pos;
 
         this.world.addNpc(npc);
-        console.log("Spawned", npc);
     }
 }

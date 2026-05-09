@@ -1,32 +1,112 @@
 import { Vector2 } from "src/types/Vector2";
 import { NavAgent } from "../../NavSystem/NavAgent";
-import { INpc } from "../INpc";
+import { INpc, NpcActions } from "../INpc";
 import { INpcBehavior } from "../INpcBehavior";
 import { Vector3 } from "src/types/Vector3";
 import { IInteractable } from "../../EntitiesSystem/IInteractable";
 import { WorldQuery } from "../../worldQuery/WorldQuery";
+import { StructureEntity, StructureEntityWithHP } from "../../Structures/StructureEntity";
+import { IEntity } from "../../EntitiesSystem/IEntity";
+import { WorldUpdatesStorage } from "src/sessions/Net/models/WorldUpdateStorage";
+import { DataType, NpcEventType, NpcUpdatePacket } from "src/sessions/Net/models/NpcUpdatepakcet";
+import { EnityEvent, EntityEventType } from "src/sessions/Net/models/EnityState";
+import { IAttackable } from "../../EntitiesSystem/IAttackable";
+
+
+function isInteractable(obj: any): obj is IInteractable {
+    return typeof obj?.getInteractionPoints === "function";
+}
+
+function isAttackable(obj: any): obj is IAttackable {
+    return obj && typeof obj.current_hp === "number" && typeof obj.takeDamage === "function";
+}
 
 export class EnemyBehavior implements INpcBehavior{
     
     private  targetSelected:boolean = false
+    private target:StructureEntity | IEntity | null = null 
 
-    constructor(private worldQwert: WorldQuery){}
+    private attackTimer = 0;
+
+    constructor(private worldQwert: WorldQuery, private eventBus: WorldUpdatesStorage){}
     
-    update(npc: INpc, delta: number): void {
+update(npc: INpc, delta: number): void {
 
-        if (!this.targetSelected) {
-            const rootObj = this.worldQwert.getRootHouseObj();
-            this.SetTarget(npc,rootObj);
+    if (!this.targetSelected) {
+        const rootObj = this.worldQwert.getRootHouseObj();
+        this.SetTarget(npc, rootObj);
+    }
+
+    if (this.target == null) return;
+
+    if (!this.target || !isInteractable(this.target)) return;
+
+    const interactionPoints = this.target.getInteractionPoints();
+
+    if (!interactionPoints || interactionPoints.length === 0)
+        return;
+
+    let inInteractZone = false;
+
+    for (const point of interactionPoints) {
+
+        const distance = Vector2.distance(
+            npc.position,
+            point
+        );
+
+        if (distance <= npc.config.attackRange) {
+            inInteractZone = true;
+            break;
+        }
+    }
+
+    // NPC находится в зоне взаимодействия
+    if (inInteractZone) {
+
+        this.stop(npc);
+
+        this.attackTimer -= delta;
+
+        if (this.attackTimer <= 0) {
+
+            this.attackTimer = npc.config.attackCooldown;
+
+            this.attack(npc, this.target);
         }
 
-        const direction = npc.navAgent.update(npc.position);
+        return;
+    }
 
-        if (!direction) {
-            this.stop(npc);
-            return;
-        }
+    // движение
+    const direction = npc.navAgent.update(npc.position);
 
-        this.move(npc, direction, delta);
+    if (!direction) {
+        this.stop(npc);
+        return;
+    }
+
+    this.move(npc, direction, delta);
+}
+
+    attack(npc: INpc, target: StructureEntity | IEntity) {
+
+        if (!isAttackable(target)) return;
+
+        const updatePacket: NpcUpdatePacket = {
+            type: "Npc",
+            enventType: NpcEventType.UPDATE,
+            npcId: npc.id,
+            npcType: npc.type,
+            data: {
+                dataType: DataType.ACTION,
+                action: NpcActions.ATTACK
+            }
+        };
+
+        this.eventBus.add(updatePacket);
+
+        target.takeDamage(npc.config.damage);
     }
 
     private SetTarget(npc: INpc,target:IInteractable ){
@@ -52,6 +132,8 @@ export class EnemyBehavior implements INpcBehavior{
 
         npc.navAgent.setTarget(closest);
         this.targetSelected = true;
+
+        this.target = target as StructureEntityWithHP;
     }
 
     private move(

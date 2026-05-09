@@ -97,10 +97,10 @@ export class World{
         return Array.from(this.Npcs.values());
     }
 
-    getAllEnity():IEntity[]{
-        return Array.from( this.Entities.values());
+    getAllEnity(): IEntity[] {
+        const rootHouse = this.rootStruct;
+        return [rootHouse, ...this.Entities.values()];
     }
-
     addEnity(entity: IEntity){
         this.Entities.set(entity.Id, entity);
     }
