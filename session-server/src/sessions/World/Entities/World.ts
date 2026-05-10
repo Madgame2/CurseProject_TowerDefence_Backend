@@ -17,6 +17,7 @@ import { NpcEventType, NpcUpdatePacket } from "src/sessions/Net/models/NpcUpdate
 import { Vector2 } from "src/types/Vector2";
 import { DirectorSystem } from "../DirectorSystem/DirectorSystem";
 import { WaveSpawner } from "../WaveSpawner/WaveSpawner";
+import { IAttackable } from "../EntitiesSystem/IAttackable";
 
 export class World{
 
@@ -77,20 +78,49 @@ export class World{
             return (dx * dx + dy * dy) <= r2;
         });
     }
-    addNpc(npc: INpc){
+    addNpc(npc: INpc) {
         this.Npcs.set(npc.id, npc);
 
-        const newPacket : NpcUpdatePacket ={
+        if (this.isAttackable(npc)) {
+            npc.subscribeDeath(() => {
+                this.removeNpc(npc.id);
+            });
+        }
+
+        const newPacket: NpcUpdatePacket = {
             type: "Npc",
             npcId: npc.id,
             enventType: NpcEventType.SPAWN,
             npcType: npc.type,
-            data:{
+            data: {
                 position: npc.position,
                 behaver: npc.behaverType
             }
-        }
+        };
+
         this.worldUpdatesStorage.add(newPacket);
+    }
+
+    removeNpc(npcId: string) {
+        const npc = this.Npcs.get(npcId);
+        if (!npc) return;
+
+        this.Npcs.delete(npcId);
+
+        const packet: NpcUpdatePacket = {
+            type: "Npc",
+            npcId: npc.id,
+            enventType: NpcEventType.TERMINATE,
+            npcType: npc.type,
+            data: {
+            }
+        };
+
+        this.worldUpdatesStorage.add(packet);
+    }
+    
+    private isAttackable(npc: INpc): npc is INpc & IAttackable {
+        return "subscribeDeath" in npc;
     }
 
     getAllNpc():INpc[]{
@@ -101,6 +131,7 @@ export class World{
         const rootHouse = this.rootStruct;
         return [rootHouse, ...this.Entities.values()];
     }
+    
     addEnity(entity: IEntity){
         this.Entities.set(entity.Id, entity);
     }

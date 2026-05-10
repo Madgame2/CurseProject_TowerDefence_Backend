@@ -3,6 +3,8 @@ import { Vector3 } from "src/types/Vector3";
 import { Vector2 } from "src/types/Vector2";
 import { Block } from "../Entities/Block";
 import { BlockRegistry } from "../BlockRegistry";
+import { INpc } from "../npc/INpc";
+import { BehaviorTypes } from "../npc/BehaviorTypes.enum";
 
 
 export class WorldQuery{
@@ -14,6 +16,26 @@ export class WorldQuery{
         return this.world.rootStruct;
     }
 
+
+    getNPCsByBehavior(
+        position: Vector2,
+        radius: number,
+        behavior: BehaviorTypes
+    ): INpc[]{
+        const result: INpc[] = []
+
+        for (const npc of this.world.getAllNpc()) {
+
+            if (npc.behaverType !== behavior) continue;
+
+            const dist = Vector2.distance(position, npc.position);
+            if (dist <= radius) {
+                result.push(npc);
+            }
+        }
+
+        return result;
+    }
 
 getRandomSpawnAround(
     center: Vector2,

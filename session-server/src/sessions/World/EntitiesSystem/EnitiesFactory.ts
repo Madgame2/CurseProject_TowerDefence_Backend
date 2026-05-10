@@ -11,10 +11,12 @@ import { Camp } from "./imp/Camp/Camp";
 import { RootHouse } from "../Structures/stuctures_imp/RootHouse.struct";
 import { StructureService } from "../Structures/StructService";
 import { StructureEntityWithHP } from "../Structures/StructureEntity";
+import { WorldQuery } from "../worldQuery/WorldQuery";
+import { WorldUpdatesStorage } from "src/sessions/Net/models/WorldUpdateStorage";
 
 export class EntitiesFactory{
 
-    constructor(private structureService: StructureService){}
+    constructor(private structureService: StructureService, private worldQwery: WorldQuery, private eventBus: WorldUpdatesStorage){}
 
     CreateEntity(type:EntityesEnum, playerId: string, worldPos:Vector2): IEntity{
         switch(type){
@@ -26,7 +28,7 @@ export class EntitiesFactory{
             case EntityesEnum.GrossCannon:
                 {
                     const enityId = randomUUID();
-                    return new GrossCannon(enityId,playerId,worldPos);
+                    return new GrossCannon(enityId,playerId,worldPos, this.worldQwery, this.eventBus);
                 }
 
             case EntityesEnum.TeslaTowerBuild:{

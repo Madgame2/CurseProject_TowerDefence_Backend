@@ -6,17 +6,22 @@ import { BehaviorTypes } from "./BehaviorTypes.enum";
 import { Vector2 } from "src/types/Vector2";
 import { Vector3 } from "src/types/Vector3";
 import { NavAgent } from "../NavSystem/NavAgent";
+import { IAttackable } from "../EntitiesSystem/IAttackable";
 
-export class Npc implements INpc{
+export class Npc implements INpc, IAttackable{
 
+    private deathListeners: (() => void)[] = [];
+    
     public id: string;
     public type: NpcTypes;
     public config: NpcConfig;
     public behaverType: BehaviorTypes;
 
     private behavior: INpcBehavior;
-    
-    private currentHp: number;
+
+
+    max_hp: number;
+    current_hp: number;
 
     position: Vector2;
     velocity: Vector2;
@@ -39,12 +44,38 @@ export class Npc implements INpc{
         this.behaverType = behaviorType;
         this.navAgent = navAgent;
 
-        this.currentHp = config.hp;
+        this.max_hp = config.hp;
+        this.current_hp = config.hp;
 
         this.position = Vector2.zero();
         this.velocity = Vector2.zero();
         this.rotation = Vector3.zero();
         this.direction = Vector2.zero();
+    }
+
+    takeDamage(amount: number): void {
+        this.current_hp -= amount;
+
+        if (this.current_hp <= 0) {
+            this.current_hp = 0;
+            this.die();
+        }
+    }
+
+    subscribeDeath(cb: () => void): void {
+        this.deathListeners.push(cb);
+    }
+
+    unsubscribeDeath(cb: () => void): void {
+        this.deathListeners = this.deathListeners.filter(x => x !== cb);
+    }
+
+    private die() {
+        for (const cb of this.deathListeners) {
+            cb();
+        }
+
+        this.deathListeners = [];
     }
 
     action(delta: number): void {

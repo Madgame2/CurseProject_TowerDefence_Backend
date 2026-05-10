@@ -16,6 +16,8 @@ export class StructureEntity {
 
 export class StructureEntityWithHP extends StructureEntity implements IEntity , IInteractable, IAttackable{
  
+    private deathListeners: (() => void)[] = [];
+
     max_hp: number;
     constructor(
         public Id: string,
@@ -29,7 +31,12 @@ export class StructureEntityWithHP extends StructureEntity implements IEntity , 
  }
 
     takeDamage(amount: number): void {
-        this.current_hp -=amount;
+        this.current_hp -= amount;
+
+        if (this.current_hp <= 0) {
+            this.current_hp = 0;
+            this.die();
+        }
     }
 
     getInteractionPoints(): Vector2[] | null {
@@ -82,6 +89,21 @@ export class StructureEntityWithHP extends StructureEntity implements IEntity , 
         return Array.from(points.values());
     }
 
+    subscribeDeath(cb: () => void): void {
+        this.deathListeners.push(cb);
+    }
+
+    unsubscribeDeath(cb: () => void): void {
+        this.deathListeners = this.deathListeners.filter(x => x !== cb);
+    }
+
+    private die() {
+        for (const cb of this.deathListeners) {
+            cb();
+        }
+
+        this.deathListeners = [];
+    }
 
     update(delta: number) {
         
