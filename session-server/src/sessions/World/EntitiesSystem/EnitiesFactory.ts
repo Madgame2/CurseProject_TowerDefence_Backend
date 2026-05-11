@@ -37,7 +37,7 @@ export class EntitiesFactory{
             }
             case EntityesEnum.TeslaTower:{
                 const enityId = randomUUID();
-                return new TeslaTower(enityId,playerId,worldPos);
+                return new TeslaTower(enityId,playerId,worldPos,this.worldQwery, this.eventBus);
             }
 
             case EntityesEnum.CampInBuild:{
