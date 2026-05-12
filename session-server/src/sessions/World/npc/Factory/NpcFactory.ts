@@ -45,7 +45,7 @@ export class NpcFactory{
                 //return new NeutralBehavior();
 
             case BehaviorTypes.GUARDION:
-                return new GuardianBehavior(this.worldQwery);
+                return new GuardianBehavior(this.worldQwery,this.eventBus);
 
             default:
                 throw new Error("Unknown behavior");

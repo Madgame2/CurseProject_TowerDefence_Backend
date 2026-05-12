@@ -14,10 +14,10 @@ export const npcConfigs: Record<NpcTypes, NpcConfig> = {
     },
     [NpcTypes.KNIGHT]: {
         hp: 120,
-        damage: 25,
-        attackRange: 0.5,
+        damage: 15,
+        attackRange: 0.75,
         notifyRange: 20,
-        attackCooldown: 1,
+        attackCooldown: 7,
         runMultiplier: 2,
         speed: 1
     }

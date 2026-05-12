@@ -62,52 +62,66 @@ export class WorldSimulationService{
         }
     }
 
-updateMovement(delta: number) {
+    updateMovement(delta: number) {
 
-    for (const player of this.world.getAllPlayers()) {
+        for (const player of this.world.getAllPlayers()) {
 
-        if (player.state === PlayerStates.BLOCKED_ADN_HIDE) {
-            continue;
+            if (player.state === PlayerStates.BLOCKED_ADN_HIDE) {
+                continue;
+            }
+
+            // ВАЖНО:
+            // создаём ОДИН объект позиции
+            const current2D = new Vector2(
+                player.position.x,
+                player.position.z
+            );
+
+            const moveDistance = player.speed * delta;
+
+            const direction2D = player.navAgent.update(
+                current2D,
+                moveDistance
+            );
+
+            // =====================================================
+            // SNAP ПОЗИЦИИ ИЗ NAV AGENT
+            // =====================================================
+            player.position.x = current2D.x;
+            player.position.z = current2D.y;
+
+            // пути нет
+            if (!direction2D) {
+
+                this.stopPlayer(player);
+                continue;
+            }
+
+            const direction = new Vector3(
+                direction2D.x,
+                0,
+                direction2D.y
+            );
+
+            const velocity = direction.multiply(player.speed);
+
+            player.direction = direction;
+            player.velocity = velocity;
+
+            // rotation
+            player.rotation = new Vector3(
+                0,
+                Math.atan2(direction.x, direction.z) * (180 / Math.PI),
+                0
+            );
+
+            // movement
+            player.position = Vector3.add(
+                player.position,
+                velocity.multiply(delta)
+            );
         }
-
-        const direction2D = player.navAgent.update(
-            new Vector2(player.position.x, player.position.z)
-        );
-
-        // пути нет
-        if (!direction2D) {
-            //console.log("STOP PLAYER");
-            this.stopPlayer(player);
-            continue;
-        }
-
-        const direction = new Vector3(
-            direction2D.x,
-            0,
-            direction2D.y
-        );
-
-        const velocity = direction.multiply(player.speed);
-
-        player.direction = direction;
-        player.velocity = velocity;
-        //player.state = PlayerStates.RUNING;
-
-        // rotation
-        player.rotation = new Vector3(
-            0,
-            Math.atan2(direction.x, direction.z) * (180 / Math.PI),
-            0
-        );
-
-        // movement
-        player.position = Vector3.add(
-            player.position,
-            velocity.multiply(delta)
-        );
     }
-    
-}
 private stopPlayer(player: Player) {
 
     player.velocity = Vector3.zero();

@@ -97,9 +97,6 @@ export class NetworkSysncService{
                 }
             }
 
-            if(pakcet.npcType == NpcTypes.KNIGHT){
-                console.log(pakcet.data);
-            }
             npcUpdates.push(pakcet);
         }
 

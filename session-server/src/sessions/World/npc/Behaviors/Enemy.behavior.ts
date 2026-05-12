@@ -50,18 +50,17 @@ export class EnemyBehavior implements INpcBehavior{
 
         for (const point of interactionPoints) {
 
-            const distance = Vector2.distance(
-                npc.position,
-                point
-            );
-
-            if (distance <= npc.config.attackRange) {
+            const distance = Vector2.distance(npc.position, point);
+            console.log(distance, " nead: ", npc.config.attackRange+0.5)
+            if (distance <= npc.config.attackRange+0.5) {
+                console.log("МОГУ БИТЬ, ", npc.id);
                 inInteractZone = true;
-                break;
+                npc.navAgent.stop();
             }
         }
 
         // NPC находится в зоне взаимодействия
+        //console.log("inInteractZone: ",inInteractZone);
         if (inInteractZone) {
 
             this.stop(npc);
@@ -71,15 +70,19 @@ export class EnemyBehavior implements INpcBehavior{
             if (this.attackTimer <= 0) {
 
                 this.attackTimer = npc.config.attackCooldown;
-
+                console.log("АТТАКУЮ ", npc.id);
                 this.attack(npc, this.target);
             }
 
             return;
         }
 
-        // движение
-        const direction = npc.navAgent.update(npc.position);
+        const moveDistance = npc.config.speed * delta;
+
+        const direction = npc.navAgent.update(
+            npc.position,
+            moveDistance
+        );
 
         if (!direction) {
             this.stop(npc);
@@ -130,6 +133,7 @@ export class EnemyBehavior implements INpcBehavior{
             }
         }
 
+        console.log("БУДУ БИТЬ В: ", closest)
         npc.navAgent.setTarget(closest);
         this.targetSelected = true;
 
@@ -138,29 +142,29 @@ export class EnemyBehavior implements INpcBehavior{
 
  
 
-    private move(
-        npc: INpc,
-        direction: Vector2,
-        delta: number
-    ) {
+private move(
+    npc: INpc,
+    direction: Vector2,
+    delta: number
+) {
 
-        const moveDistance = npc.config.speed * delta;
+    const moveDistance = npc.config.speed * delta;
 
-        npc.direction = direction;
+    npc.direction = direction;
 
-        npc.velocity = direction.multiply(npc.config.speed);
+    npc.velocity = direction.multiply(npc.config.speed);
 
-        npc.position = Vector2.add(
-            npc.position,
-            direction.multiply(moveDistance)
-        );
+    // ДВИЖЕНИЕ
+    npc.position.x += direction.x * moveDistance;
+    npc.position.y += direction.y * moveDistance;
 
-        npc.rotation = new Vector3(
-            0,
-            Math.atan2(direction.x, direction.y) * (180 / Math.PI),
-            0
-        );
-    }
+    // ROTATION
+    npc.rotation = new Vector3(
+        0,
+        Math.atan2(direction.x, direction.y) * (180 / Math.PI),
+        0
+    );
+}
 
     private stop(npc: INpc) {
 

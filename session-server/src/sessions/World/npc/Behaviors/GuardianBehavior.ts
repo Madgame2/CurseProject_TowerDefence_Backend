@@ -1,11 +1,13 @@
 import { Vector2 } from "src/types/Vector2";
-import { INpc } from "../INpc";
+import { INpc, NpcActions } from "../INpc";
 import { INpcBehavior } from "../INpcBehavior";
 import { IPatrolBehavior } from "../IPatrolBehavior";
 import { WorldQuery } from "../../worldQuery/WorldQuery";
 import { Vector3 } from "src/types/Vector3";
 import { BehaviorTypes } from "../BehaviorTypes.enum";
 import { IAttackable } from "../../EntitiesSystem/IAttackable";
+import { WorldUpdatesStorage } from "src/sessions/Net/models/WorldUpdateStorage";
+import { DataType, NpcEventType, NpcUpdatePacket } from "src/sessions/Net/models/NpcUpdatepakcet";
 
 function isAttackable(entity: any): entity is IAttackable {
     return !!entity
@@ -36,7 +38,7 @@ export class GuardianBehavior implements INpcBehavior, IPatrolBehavior{
 
     private repathCooldown = 0;
 
-    constructor(private readonly worldQuery: WorldQuery){}
+    constructor(private readonly worldQuery: WorldQuery, private readonly eventBuss: WorldUpdatesStorage){}
 
     
     update(npc: INpc, delta: number): void {
@@ -58,12 +60,12 @@ export class GuardianBehavior implements INpcBehavior, IPatrolBehavior{
 
     private chaseAndAttack(guardian: INpc, delta:number){
 
-        const target = this.target;
-        if(target == null){
+        if (!this.target || !isAttackable(this.target)) {
+            this.clearTarget();
             return;
         }
+        const target = this.target;
 
-        console.log(target);
         const distance = Vector2.distance(guardian.position,target.position);
 
         const attackDistance  =
@@ -71,32 +73,24 @@ export class GuardianBehavior implements INpcBehavior, IPatrolBehavior{
             target.radius +
             guardian.config.attackRange;
 
-        const chaseDistance = attackDistance - 0.25;
-        console.log("chaseDistance: ", chaseDistance);
-        console.log("attackDistance: ", attackDistance);
+        const chaseDistance = attackDistance - 0.5;
 
         if (distance > chaseDistance) {
 
             const targetPos = target.position;
 
-            // =========================
-            // ЗОНЫ ПЕРЕСЧЁТА
-            // =========================
-            let repathInterval = 1.0; // по умолчанию
+            let repathInterval = 1.0; 
 
             if (distance > 10) {
-                repathInterval = 1.5; // ОЧЕНЬ далеко → редко
+                repathInterval = 1.5; 
             }
             else if (distance > 5) {
-                repathInterval = 0.7; // средняя дистанция
+                repathInterval = 0.7; 
             }
             else {
-                repathInterval = 0.3; // близко → чаще
+                repathInterval = 0.3; 
             }
 
-            // =========================
-            // КУЛДАУН ПЕРЕСЧЁТА
-            // =========================
             this.repathCooldown -= delta;
 
             if (this.repathCooldown <= 0) {
@@ -108,21 +102,29 @@ export class GuardianBehavior implements INpcBehavior, IPatrolBehavior{
                 this.repathCooldown = repathInterval;
             }
 
-            const direction = guardian.navAgent.update(guardian.position);
+            const moveDistance =
+                guardian.config.speed *
+                guardian.config.runMultiplier *
+                delta;
 
-            if (!direction) return;
+            const direction = guardian.navAgent.update(
+                guardian.position,
+                moveDistance
+            );
+
+            if (!direction) {
+                this.stop(guardian);
+                return;
+            }
 
             this.run(guardian, direction, delta);
-
             return;
         }
 
-        console.log("Я РЯДОМ")
         guardian.navAgent.stop();
         this.stop(guardian);
 
         if(distance > attackDistance){
-            console.log("ББОЛЬШАЯ ДИСТАНЦИЯ")
             return;
         }
 
@@ -135,40 +137,61 @@ export class GuardianBehavior implements INpcBehavior, IPatrolBehavior{
 
         guardian.lookAt(target.position);
 
-        console.log("АТТАКА");
+
+        this.attack(guardian,target);
         this.attackCooldown = guardian.config.attackCooldown;
     }
 
-    private run(
-        npc: INpc,
-        direction: Vector2,
-        delta: number
-    ) {
-        if(!direction) return;
+    private attack(guardioan:INpc ,target: INpc){
 
-        const dir = direction.normalize();
-        const speed = npc.config.speed;
+        if(!isAttackable(target)) return
 
-        const moveDistance = speed * delta;
+        target.takeDamage(guardioan.config.damage);
 
-        npc.direction = dir;
 
-        const stepFactor = 0.9; 
-
-        const velocity = dir.multiply(speed * stepFactor);
-        npc.velocity = velocity;
-
-        npc.position = Vector2.add(
-            npc.position,
-            dir.multiply(moveDistance)
-        );
-
-        npc.rotation = new Vector3(
-            0,
-            Math.atan2(dir.x, dir.y) * (180 / Math.PI),
-            0
-        );
+        console.log("АТТАКУЮ ", target.id);
+        console.log(target.current_hp);
+        const event : NpcUpdatePacket ={
+            type: "Npc",
+            npcType: guardioan.type,
+            npcId: guardioan.id,
+            enventType: NpcEventType.UPDATE,
+            data:{
+                dataType: DataType.ACTION,
+                action: NpcActions.ATTACK
+            }
+        }
+        
+        this.eventBuss.add(event);
     }
+
+private run(
+    npc: INpc,
+    direction: Vector2,
+    delta: number
+) {
+
+    const speed =
+        npc.config.speed *
+        npc.config.runMultiplier;
+
+    const moveDistance = speed * delta;
+
+    npc.direction = direction;
+
+    npc.velocity = direction.multiply(speed);
+
+    // ДВИЖЕНИЕ
+    npc.position.x += direction.x * moveDistance;
+    npc.position.y += direction.y * moveDistance;
+
+    // ROTATION
+    npc.rotation = new Vector3(
+        0,
+        Math.atan2(direction.x, direction.y) * (180 / Math.PI),
+        0
+    );
+}
 
     private selectTarget(target:INpc){
         if (isAttackable(target)) {
@@ -216,7 +239,13 @@ export class GuardianBehavior implements INpcBehavior, IPatrolBehavior{
 
 
     private walk(npc: INpc, delta: number) {
-        const direction = npc.navAgent.update(npc.position);
+
+        const moveDistance = npc.config.speed * delta;
+
+        const direction = npc.navAgent.update(
+            npc.position,
+            moveDistance
+        );
 
         if (!direction) {
             this.stop(npc);
@@ -230,36 +259,29 @@ export class GuardianBehavior implements INpcBehavior, IPatrolBehavior{
         npc.velocity = Vector2.zero();
     }
 
-    private move(
-        npc: INpc,
-        direction: Vector2,
-        delta: number
-    ) {
-        if(!direction) return;
+private move(
+    npc: INpc,
+    direction: Vector2,
+    delta: number
+) {
+    const speed = npc.config.speed;
+    const moveDistance = speed * delta;
 
-        const dir = direction.normalize();
-        const speed = npc.config.speed;
+    // direction уже должен быть нормализован navAgent'ом
+    npc.direction = direction;
 
-        const moveDistance = speed * delta;
+    npc.velocity = direction.multiply(speed);
 
-        npc.direction = dir;
+    // прямое движение без Vector2.add (меньше мусора + проще snap)
+    npc.position.x += direction.x * moveDistance;
+    npc.position.y += direction.y * moveDistance;
 
-        const stepFactor = 0.9; 
-
-        const velocity = dir.multiply(speed * stepFactor);
-        npc.velocity = velocity;
-
-        npc.position = Vector2.add(
-            npc.position,
-            dir.multiply(moveDistance)
-        );
-
-        npc.rotation = new Vector3(
-            0,
-            Math.atan2(dir.x, dir.y) * (180 / Math.PI),
-            0
-        );
-    }
+    npc.rotation = new Vector3(
+        0,
+        Math.atan2(direction.x, direction.y) * (180 / Math.PI),
+        0
+    );
+}
 
     private whantToChangePosition(delta: number):boolean{
         this.changePositionTimer += delta;
@@ -285,15 +307,16 @@ export class GuardianBehavior implements INpcBehavior, IPatrolBehavior{
         }
 
         const clothestTarget = this.getClosest(npc.position, tagets);
-        this.target = clothestTarget
+        if(!clothestTarget) return false;
 
-        return this.target!=null;;
+        this.selectTarget(clothestTarget);
+
+        return true;
     }
 
-    private HasTarget(): boolean{
-
-        return this.target!=null;
-    }
+        private HasTarget(): boolean {
+            return this.target != null && isAttackable(this.target);
+        }
 
 
        private getClosest(currentPos: Vector2 ,targets: INpc[]): INpc|null{

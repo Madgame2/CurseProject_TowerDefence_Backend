@@ -26,49 +26,72 @@ export class NavAgent {
 
         this.needsRepath = false;
     }
+    update(currentPosition: Vector2, moveDistance: number): Vector2 | null {
 
-update(currentPosition: Vector2): Vector2 | null {
+        if (!this.path || this.path.length < 2) {
+            this.clearPath();
+            return null;
+        }
 
-    if (!this.path || this.path.length < 2) {
-        return null;
+        const reachRadiusSq = 0.36;
+
+        const lastIndex = this.path.length - 1;
+
+        if (this.currentIndex >= lastIndex) {
+            this.clearPath();
+            return null;
+        }
+
+        const current = this.path[this.currentIndex];
+        const next = this.path[this.currentIndex + 1];
+
+        if (!current || !next) {
+            this.clearPath();
+            return null;
+        }
+
+        const toNext = Vector2.subtract(next, currentPosition);
+
+        const distToNextSq = toNext.lengthSquared();
+        const distToNext = Math.sqrt(distToNextSq);
+
+        // =========================================================
+        // ФИНАЛЬНАЯ ТОЧКА
+        // =========================================================
+        if (this.currentIndex === lastIndex - 1) {
+
+            // если за этот кадр дошли или перелетели
+            if (distToNext <= moveDistance) {
+
+                // ЖЁСТКИЙ SNAP
+                currentPosition.x = next.x;
+                currentPosition.y = next.y;
+
+                this.currentIndex++;
+                this.clearPath();
+
+                return null;
+            }
+        }
+
+        // =========================================================
+        // ОБЫЧНОЕ ДОСТИЖЕНИЕ ТОЧКИ
+        // =========================================================
+        if (distToNextSq <= reachRadiusSq) {
+            this.currentIndex++;
+            return null;
+        }
+
+        // =========================================================
+        // ДВИЖЕНИЕ
+        // =========================================================
+        return toNext.normalize();
     }
 
-    if (this.currentIndex >= this.path.length - 1) {
-        this.path = undefined;
-        return null;
-    }
-
-    const reachRadius = 0.6;
-
-    const current = this.path[this.currentIndex];
-    const next = this.path[this.currentIndex + 1];
-
-    // =========================
-    // СЕГМЕНТ ПУТИ (ВАЖНОЕ ИЗМЕНЕНИЕ)
-    // =========================
-    const segment = Vector2.subtract(next, current);
-
-    const toCurrent = Vector2.subtract(current, currentPosition);
-    const toNext = Vector2.subtract(next, currentPosition);
-
-    // если уже прошли текущую точку → двигаемся дальше
-    if (toNext.lengthSquared() < reachRadius * reachRadius) {
-        this.currentIndex++;
-        return this.update(currentPosition);
-    }
-
-    // =========================
-    // ПРОЕКЦИЯ НА СЕГМЕНТ
-    // =========================
-
-    const segDir = segment.normalize();
-
-    // просто двигаемся ВДОЛЬ линии, а не к точке
-    const velocity = segDir;
-
-    return velocity;
+private clearPath() {
+    this.path = undefined;
+    this.currentIndex = 0;
 }
-
     public recalculatePath(currentPosition: Vector2) {
 
         if (!this.target) {
