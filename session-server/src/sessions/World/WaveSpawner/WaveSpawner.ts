@@ -5,6 +5,7 @@ import { NpcTypes } from "../npc/NpcTypes.enum";
 import { BehaviorTypes } from "../npc/BehaviorTypes.enum";
 import { Vector2 } from "src/types/Vector2";
 import { World } from "../Entities/World";
+import { INpc } from "../npc/INpc";
 
 
 interface SpawnTask {
@@ -59,11 +60,10 @@ export class WaveSpawner {
         }
 
         this.spawnEnemy(task.type, task.pos);
-
         this.timer += this.spawnDelay;
     }
 
-    private spawnEnemy(type: NpcTypes, pos: Vector2) {
+    private spawnEnemy(type: NpcTypes, pos: Vector2): INpc {
 
         const npc = this.npcFactory.create(
             type,
@@ -72,5 +72,7 @@ export class WaveSpawner {
         npc.position = pos;
 
         this.world.addNpc(npc);
+
+        return npc;
     }
 }

@@ -11,7 +11,11 @@ export class WorldQuery{
 
     constructor(private world: World){}
 
-    
+
+    getAllEnemies():INpc[]{
+        return this.world.getAllEnemyNpcs();
+    }
+
     getRootHouseObj(){
         return this.world.rootStruct;
     }

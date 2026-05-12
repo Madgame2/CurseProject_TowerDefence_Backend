@@ -18,12 +18,14 @@ import { Vector2 } from "src/types/Vector2";
 import { DirectorSystem } from "../DirectorSystem/DirectorSystem";
 import { WaveSpawner } from "../WaveSpawner/WaveSpawner";
 import { IAttackable } from "../EntitiesSystem/IAttackable";
+import { BehaviorTypes } from "../npc/BehaviorTypes.enum";
 
 export class World{
 
     private players = new Map<string, Player>();
     private Entities = new  Map<string, IEntity>()
     private Npcs = new Map<string, INpc>()
+    private enemyNpcs = new Map<string, INpc>()
 
     rootStruct!: StructureEntityWithHP;
 
@@ -66,6 +68,10 @@ export class World{
     }
 
 
+    getAllEnemyNpcs():INpc[]{
+        return Array.from(this.enemyNpcs.values());
+    }
+
     getNpcsInRegion(center: Vector2, radius: number): INpc[] {
 
         const r2 = radius * radius;
@@ -87,6 +93,10 @@ export class World{
             });
         }
 
+        if(npc.behaverType == BehaviorTypes.ENEMY){
+            this.enemyNpcs.set(npc.id, npc);
+        }
+
         const newPacket: NpcUpdatePacket = {
             type: "Npc",
             npcId: npc.id,
@@ -104,6 +114,10 @@ export class World{
     removeNpc(npcId: string) {
         const npc = this.Npcs.get(npcId);
         if (!npc) return;
+
+        if(this.enemyNpcs.has(npcId)){
+            this.enemyNpcs.delete(npcId);
+        }
 
         this.Npcs.delete(npcId);
 

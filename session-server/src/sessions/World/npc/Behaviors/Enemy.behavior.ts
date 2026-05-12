@@ -51,7 +51,6 @@ export class EnemyBehavior implements INpcBehavior{
         for (const point of interactionPoints) {
 
             const distance = Vector2.distance(npc.position, point);
-            console.log(distance, " nead: ", npc.config.attackRange+0.5)
             if (distance <= npc.config.attackRange+0.5) {
                 console.log("МОГУ БИТЬ, ", npc.id);
                 inInteractZone = true;
@@ -70,7 +69,6 @@ export class EnemyBehavior implements INpcBehavior{
             if (this.attackTimer <= 0) {
 
                 this.attackTimer = npc.config.attackCooldown;
-                console.log("АТТАКУЮ ", npc.id);
                 this.attack(npc, this.target);
             }
 

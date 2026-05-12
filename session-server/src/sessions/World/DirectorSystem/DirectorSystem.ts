@@ -24,7 +24,6 @@ export class DirectorSystem{
 
     public wave: number = 0;
 
-
     private state: DirectorState = DirectorState.WAITING_START;
     private startDelay: number = 3;
 
@@ -79,13 +78,35 @@ export class DirectorSystem{
     private updateGame(delta){
         this.phaseTimer -= delta;
 
-        if (this.phaseTimer <= 0) {
+        const enemys = this.worldQuery.getAllEnemies()
+        console.log("phaseTimer: ", this.phaseTimer <= 0);
+        console.log("enemys: ",enemys.length );
+        if (this.phaseTimer <= 0&&enemys.length<=0 ) {
             switch (this.phase) {
                 case MatchPhase.PREPARATION:
                     this.startWave();
                     break;
+                case MatchPhase.WAVE:
+                    this.startPrepare();
+                break;
             }
         }
+    }
+
+    private startPrepare(){
+        
+        this.phase = MatchPhase.PREPARATION;
+
+        this.phaseTimer =30;
+
+        const muthcUpdateData: DireectorUpdatePacket ={
+            type: "Director",
+            matchPahase: this.phase,
+            data:{
+                countdown: this.phaseTimer
+            }
+        }
+        this.eventBus.add(muthcUpdateData);
     }
     
     private startWave() {
@@ -97,6 +118,7 @@ export class DirectorSystem{
         const config = this.getConfig(this.wave);
         this.waveSpawner.startWave(config);
 
+        this.phaseTimer = config.spawnDelay* (config.enemies.length -1);
         const message : DireectorUpdatePacket ={
             type: "Director",
             matchPahase: this.phase,
