@@ -13,10 +13,16 @@ import { StructureService } from "../Structures/StructService";
 import { StructureEntityWithHP } from "../Structures/StructureEntity";
 import { WorldQuery } from "../worldQuery/WorldQuery";
 import { WorldUpdatesStorage } from "src/sessions/Net/models/WorldUpdateStorage";
+import { NpcFactory } from "../npc/Factory/NpcFactory";
+import { World } from "../Entities/World";
 
 export class EntitiesFactory{
 
-    constructor(private structureService: StructureService, private worldQwery: WorldQuery, private eventBus: WorldUpdatesStorage){}
+    constructor(private structureService: StructureService, 
+        private worldQwery: WorldQuery,
+        private eventBus: WorldUpdatesStorage,
+        private npcFactory: NpcFactory,
+        private world: World){}
 
     CreateEntity(type:EntityesEnum, playerId: string, worldPos:Vector2): IEntity{
         switch(type){
@@ -46,7 +52,7 @@ export class EntitiesFactory{
             }
             case EntityesEnum.Camp:{
                 const enityId = randomUUID();
-                return new Camp(enityId,playerId,worldPos);
+                return new Camp(enityId,playerId,worldPos,this.npcFactory,this.world,this.worldQwery);
             }
 
             case EntityesEnum.RootHouse:{

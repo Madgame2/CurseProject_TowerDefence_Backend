@@ -30,64 +30,64 @@ export class EnemyBehavior implements INpcBehavior{
 
     constructor(private worldQwert: WorldQuery, private eventBus: WorldUpdatesStorage){}
     
-update(npc: INpc, delta: number): void {
+    update(npc: INpc, delta: number): void {
 
-    if (!this.targetSelected) {
-        const rootObj = this.worldQwert.getRootHouseObj();
-        this.SetTarget(npc, rootObj);
-    }
-
-    if (this.target == null) return;
-
-    if (!this.target || !isInteractable(this.target)) return;
-
-    const interactionPoints = this.target.getInteractionPoints();
-
-    if (!interactionPoints || interactionPoints.length === 0)
-        return;
-
-    let inInteractZone = false;
-
-    for (const point of interactionPoints) {
-
-        const distance = Vector2.distance(
-            npc.position,
-            point
-        );
-
-        if (distance <= npc.config.attackRange) {
-            inInteractZone = true;
-            break;
-        }
-    }
-
-    // NPC находится в зоне взаимодействия
-    if (inInteractZone) {
-
-        this.stop(npc);
-
-        this.attackTimer -= delta;
-
-        if (this.attackTimer <= 0) {
-
-            this.attackTimer = npc.config.attackCooldown;
-
-            this.attack(npc, this.target);
+        if (!this.targetSelected) {
+            const rootObj = this.worldQwert.getRootHouseObj();
+            this.SetTarget(npc, rootObj);
         }
 
-        return;
+        if (this.target == null) return;
+
+        if (!this.target || !isInteractable(this.target)) return;
+
+        const interactionPoints = this.target.getInteractionPoints();
+
+        if (!interactionPoints || interactionPoints.length === 0)
+            return;
+
+        let inInteractZone = false;
+
+        for (const point of interactionPoints) {
+
+            const distance = Vector2.distance(
+                npc.position,
+                point
+            );
+
+            if (distance <= npc.config.attackRange) {
+                inInteractZone = true;
+                break;
+            }
+        }
+
+        // NPC находится в зоне взаимодействия
+        if (inInteractZone) {
+
+            this.stop(npc);
+
+            this.attackTimer -= delta;
+
+            if (this.attackTimer <= 0) {
+
+                this.attackTimer = npc.config.attackCooldown;
+
+                this.attack(npc, this.target);
+            }
+
+            return;
+        }
+
+        // движение
+        const direction = npc.navAgent.update(npc.position);
+
+        if (!direction) {
+            this.stop(npc);
+            return;
+        }
+
+        this.move(npc, direction, delta);
     }
-
-    // движение
-    const direction = npc.navAgent.update(npc.position);
-
-    if (!direction) {
-        this.stop(npc);
-        return;
-    }
-
-    this.move(npc, direction, delta);
-}
 
     attack(npc: INpc, target: StructureEntity | IEntity) {
 
@@ -135,6 +135,8 @@ update(npc: INpc, delta: number): void {
 
         this.target = target as StructureEntityWithHP;
     }
+
+ 
 
     private move(
         npc: INpc,

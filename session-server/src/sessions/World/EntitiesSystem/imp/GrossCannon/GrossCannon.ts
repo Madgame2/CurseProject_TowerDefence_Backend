@@ -137,7 +137,6 @@ export class GrossCannon implements IEntity{
     }
 
     private handleTargetDeath = () => {
-        console.log("ПОМЕР")
         this.clearTarget();
     };
 

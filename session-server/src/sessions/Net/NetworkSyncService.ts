@@ -8,6 +8,7 @@ import { ChankUpdate } from "./models/ChankUpdate";
 import { EnityEvent, EntityEventType } from "./models/EnityState";
 import { DataType, NpcEventType, NpcUpdatePacket } from "./models/NpcUpdatepakcet";
 import { DireectorUpdatePacket } from "./models/DirectorUpdatePaket";
+import { NpcTypes } from "../World/npc/NpcTypes.enum";
 
 
 export class NetworkSysncService{
@@ -96,6 +97,9 @@ export class NetworkSysncService{
                 }
             }
 
+            if(pakcet.npcType == NpcTypes.KNIGHT){
+                console.log(pakcet.data);
+            }
             npcUpdates.push(pakcet);
         }
 

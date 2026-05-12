@@ -19,7 +19,7 @@ export class Npc implements INpc, IAttackable{
 
     private behavior: INpcBehavior;
 
-
+    radius: number = 0.5;
     max_hp: number;
     current_hp: number;
 
@@ -70,12 +70,25 @@ export class Npc implements INpc, IAttackable{
         this.deathListeners = this.deathListeners.filter(x => x !== cb);
     }
 
+    lookAt(target: Vector2): number {
+
+        const dir = Vector2.subtract(target, this.position);
+
+        const angle = Math.atan2(dir.y, dir.x);
+
+        return angle;
+    }
+
     private die() {
         for (const cb of this.deathListeners) {
             cb();
         }
 
         this.deathListeners = [];
+    }
+
+    getBehavior(): INpcBehavior {
+        return this.behavior;
     }
 
     action(delta: number): void {

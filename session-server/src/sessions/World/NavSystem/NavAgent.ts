@@ -16,53 +16,58 @@ export class NavAgent {
         this.needsRepath = true;
     }
 
-    update(currentPosition: Vector2): Vector2 | null {
+    stop(): void {
 
+        this.path = undefined;
 
-        if (this.needsRepath) {
-            //this.recalculatePath(currentPosition);
-        }
+        this.target = undefined;
 
-        if (!this.path || this.path.length === 0) {
-            return null;
-        }
+        this.currentIndex = 0;
 
-        if (this.currentIndex >= this.path.length) {
-            this.path = undefined;
-
-            return null;
-        }
-
-        const point = this.path[this.currentIndex];
-
-        const direction = Vector2.subtract(point, currentPosition);
-
-        const distanceSq = direction.lengthSquared();
-
-        // waypoint достигнут
-        if (distanceSq <= 0.1) {
-
-            this.currentIndex++;
-
-            // путь закончился
-            if (this.currentIndex >= this.path.length) {
-
-                this.path = undefined;
-
-                return null;
-            }
-
-            const nextPoint = this.path[this.currentIndex];
-
-            return Vector2.subtract(
-                nextPoint,
-                currentPosition
-            ).normalize();
-        }
-
-        return direction.normalize();
+        this.needsRepath = false;
     }
 
+update(currentPosition: Vector2): Vector2 | null {
+
+    if (!this.path || this.path.length < 2) {
+        return null;
+    }
+
+    if (this.currentIndex >= this.path.length - 1) {
+        this.path = undefined;
+        return null;
+    }
+
+    const reachRadius = 0.6;
+
+    const current = this.path[this.currentIndex];
+    const next = this.path[this.currentIndex + 1];
+
+    // =========================
+    // СЕГМЕНТ ПУТИ (ВАЖНОЕ ИЗМЕНЕНИЕ)
+    // =========================
+    const segment = Vector2.subtract(next, current);
+
+    const toCurrent = Vector2.subtract(current, currentPosition);
+    const toNext = Vector2.subtract(next, currentPosition);
+
+    // если уже прошли текущую точку → двигаемся дальше
+    if (toNext.lengthSquared() < reachRadius * reachRadius) {
+        this.currentIndex++;
+        return this.update(currentPosition);
+    }
+
+    // =========================
+    // ПРОЕКЦИЯ НА СЕГМЕНТ
+    // =========================
+
+    const segDir = segment.normalize();
+
+    // просто двигаемся ВДОЛЬ линии, а не к точке
+    const velocity = segDir;
+
+    return velocity;
+}
 
     public recalculatePath(currentPosition: Vector2) {
 

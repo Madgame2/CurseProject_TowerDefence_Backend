@@ -10,6 +10,7 @@ import { NavAgent } from "../../NavSystem/NavAgent";
 import { PathfindingService } from "../../NavSystem/PathfindingService";
 import { WorldQuery } from "../../worldQuery/WorldQuery";
 import { WorldUpdatesStorage } from "src/sessions/Net/models/WorldUpdateStorage";
+import { GuardianBehavior } from "../Behaviors/GuardianBehavior";
 
 
 export class NpcFactory{
@@ -44,7 +45,7 @@ export class NpcFactory{
                 //return new NeutralBehavior();
 
             case BehaviorTypes.GUARDION:
-                //return new GuardianBehavior();
+                return new GuardianBehavior(this.worldQwery);
 
             default:
                 throw new Error("Unknown behavior");

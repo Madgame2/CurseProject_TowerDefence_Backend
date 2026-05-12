@@ -8,6 +8,7 @@ import { NpcTypes } from "src/sessions/World/npc/NpcTypes.enum";
 import { BehaviorTypes } from "src/sessions/World/npc/BehaviorTypes.enum";
 import { World } from "src/sessions/World/Entities/World";
 import { WorldQuery } from "src/sessions/World/worldQuery/WorldQuery";
+import { GuardianBehavior } from "src/sessions/World/npc/Behaviors/GuardianBehavior";
 
 
 export class Camp implements IEntity{
@@ -22,6 +23,8 @@ export class Camp implements IEntity{
     private worldQuery: WorldQuery
 
     private linkedNpc: INpc| null = null;
+
+    private readonly patrollZoneRange = 3;
 
     constructor(id:string, linkedplayer:string, WorldPos: Vector2,
         npcFactory:NpcFactory, world: World, worldQuery: WorldQuery
@@ -38,9 +41,15 @@ export class Camp implements IEntity{
 
     update(delta: number) {
         if(!this.IInited()){
+            console.log("СПАВНЮ NPC");
            this.linkedNpc = this.npcFactory.create(NpcTypes.KNIGHT,BehaviorTypes.GUARDION);
-           this.linkedNpc.position = this.worldQuery.getRandomSpawnAround(this.position,1,1);
+           this.linkedNpc.position = this.worldQuery.getRandomSpawnAround(this.position,0,1);
            this.world.addNpc(this.linkedNpc);
+
+           const npcBehaver = this.linkedNpc.getBehavior();
+           if(npcBehaver instanceof GuardianBehavior){
+                npcBehaver.setPatrolZones(this.position, this.patrollZoneRange)
+           }
         }
     }
 
