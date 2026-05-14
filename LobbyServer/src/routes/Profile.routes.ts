@@ -26,6 +26,7 @@ ProfileRouter.delete(
   ProfileController.deleteUnconfUser
 );
 
+ProfileRouter.post("/refrash",ProfileController.onRefrashToken)
 
 ProfileRouter.post("/login", ProfileController.authUser);
 

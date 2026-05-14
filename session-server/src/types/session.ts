@@ -16,6 +16,7 @@ import { NetworkSysncService } from "src/sessions/Net/NetworkSyncService";
 import { NpcFactory } from "src/sessions/World/npc/Factory/NpcFactory";
 import { NpcTypes } from "src/sessions/World/npc/NpcTypes.enum";
 import { BehaviorTypes } from "src/sessions/World/npc/BehaviorTypes.enum";
+import { WSMessage } from "src/ws/Types/WSMessage";
 
 export class Session extends EventEmitter{
     SessionID!: string;
@@ -138,6 +139,9 @@ export class Session extends EventEmitter{
                 this.onlinePlayersId.add(i)
             })
             
+            this.world.events.on("rootDestroyed", () => {
+                this.stateMachine.transition(session,SessionState.FINISHED);
+            });
 
             this.stateMachine.transition(session, SessionState.RUNNING);
         })
@@ -149,6 +153,12 @@ export class Session extends EventEmitter{
             const message:WSResponse = {code:200, action:"startSession"}
             this.sessionNotifier.broadcast(Array.from(this.onlinePlayersId), JSON.stringify(message));
             this.startTickLoop()
+        })
+
+        this.stateMachine.registerOnEnter(SessionState.FINISHED, (session)=>{
+            this.stopTickLoop();
+            const message:WSResponse = {code:200, action:"sessionEnded", data:{waveNum: session.world.directorSystem.wave}}
+            this.sessionNotifier.broadcast(Array.from(this.onlinePlayersId),JSON.stringify(message))
         })
 
         this.stateMachine.transition(this, SessionState.CREATING);

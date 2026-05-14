@@ -9,6 +9,7 @@ import { Player } from "../../models/player.entity";
 import crypto from "crypto";
 import { redis } from "../../config/redis.config";
 import jwt, { SignOptions } from "jsonwebtoken";
+import { RefrashTokenDto } from "../../dto/RefreshTokenDto";
 
 
 
@@ -144,10 +145,10 @@ export class AuthService {
         };
 
         // Берем TTL из env, если нет — ставим дефолт "15m"
-        const ttl = process.env.JWT_TTL ?? "15m"; // оператор nullish coalescing гарантирует, что не undefined
+        const ttl = process.env.JWT_TTL ?? "15m"; 
 
         const options = {
-            expiresIn: ttl as "15m" | "30m" | "1h" | "2h" | "1d" // или оставь как string, если уверен в значении
+            expiresIn: ttl as "15m" | "30m" | "1h" | "2h" | "1d" 
         };
 
         const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, options);
@@ -187,6 +188,42 @@ export class AuthService {
         if (!isValid) {
             return { success: false, code: 403 };
         }
+
+        const tokens = await this.processUserAuthorization(user);
+
+        return {
+            success: true,
+            ...tokens
+        };
+    }
+
+    public generateNewTokenByRefresh = async(dto:RefrashTokenDto)=>{
+
+        const refreshData = await redis.get(`refresh:${dto.refreshtoken}`);
+
+        if (!refreshData) {
+            return {
+                success: false,
+                code: 401
+            };
+        }
+
+        const parsed = JSON.parse(refreshData);
+
+        await this.uow.start();
+
+        const user = await this.uow.players.findById(parsed.userId);
+
+        await this.uow.commit();
+
+        if (!user) {
+            return {
+                success: false,
+                code: 404
+            };
+        }
+
+        await redis.del(`refresh:${dto.refreshtoken}`);
 
         const tokens = await this.processUserAuthorization(user);
 

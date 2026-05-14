@@ -19,8 +19,11 @@ import { DirectorSystem } from "../DirectorSystem/DirectorSystem";
 import { WaveSpawner } from "../WaveSpawner/WaveSpawner";
 import { IAttackable } from "../EntitiesSystem/IAttackable";
 import { BehaviorTypes } from "../npc/BehaviorTypes.enum";
+import { EventEmitter } from "stream";
 
 export class World{
+
+    public events = new EventEmitter();
 
     private players = new Map<string, Player>();
     private Entities = new  Map<string, IEntity>()

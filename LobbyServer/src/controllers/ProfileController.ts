@@ -5,10 +5,45 @@ import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import { AuthService } from "../services/AuthService/AuthService";
 import { ConfirmProfileDTO } from "../dto/ConfirmprofileDto";
+import { RefrashTokenDto } from "../dto/RefreshTokenDto";
 
     class ProfileController{
 
         private authService = new AuthService();
+
+
+        public onRefrashToken = async (req: Request, res: Response) => {
+            try {
+
+                const dto = plainToInstance(RefrashTokenDto, req.body);
+
+                const errors = await validate(dto);
+
+                if (errors.length > 0) {
+                    return res.status(400).json({
+                        success: false,
+                        errors
+                    });
+                }
+
+                const result = await this.authService.generateNewTokenByRefresh(dto);
+
+                if (!result.success) {
+                    return res.status(result.code!).json(result);
+                }
+
+                return res.status(200).json(result);
+
+            } catch (error: any) {
+
+                console.error(error);
+
+                return res.status(500).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+        }
 
         public register = async (req:Request, res:Response)=>{
             try{

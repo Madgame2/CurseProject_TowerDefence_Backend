@@ -45,8 +45,12 @@ export class WorldFactory{
         newWorld.setSystems(chankManager,movementService,worldSimulationService,playerFactory,decorationGenerator, pathfindingService, buildSystem, worldUpdatesStoarage,entityFactory, directorSystem,waveSpawner);
         chankManager.preloadArea(0,0,4);
         const structEntity = decorationGenerator.PlaseRootHouse(RootHouse, 0,0);
-        
+
         newWorld.rootStruct = structEntity!;
+
+        newWorld.rootStruct.subscribeDeath(()=>{
+            newWorld.events.emit("rootDestroyed");
+        })
 
         return newWorld
     }
