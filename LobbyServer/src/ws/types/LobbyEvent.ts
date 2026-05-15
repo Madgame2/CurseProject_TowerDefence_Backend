@@ -1,5 +1,6 @@
 import { Lobby } from "./Lobby";
 import { IEvent } from "../Services/NotifySustem/Events/iEvent";
+import { Player } from "../../models/player.entity";
 
 export type LobbyEvent =
     | (IEvent & {
@@ -45,6 +46,12 @@ export type LobbyEvent =
         type: "LOBBY_DELETED";
         lobbyId: string;
         lobby: Lobby | null;
+    })
+    | (IEvent & {
+        type: "LOBBY_USER_PROFILE_UPDATED";
+        lobbyId: string;
+        lobby: Lobby | null;
+        userProfile: Player
     })
     | (IEvent & {
         type: "LOBBY_STATE_SYNC";

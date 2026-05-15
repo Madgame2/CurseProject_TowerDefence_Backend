@@ -14,6 +14,7 @@ import { UnubScribeLobiesEvents } from "../events/UnubScribeLobiesEvents.events"
 import { CancelRequest } from "../events/CancelsearchingSessionRequest";
 import { joinToLobbyByInviteCode, joinToLobbyRequest } from "../events/JoinToLobyRequest.event";
 import { ApplyPlayerToJoin } from "../events/ApplyPlayerToJoin";
+import { UploadNewUserData } from "../events/uploadNewUserdata";
 
 
 const WSrouter = new WSRouter();
@@ -26,6 +27,8 @@ WSrouter.on("JoinToLobby",JoinToLobby)
 WSrouter.on("ListOfLobby",GetListOfLobby)
 WSrouter.on("GetMyLobby",getMyLobby)
 WSrouter.on("GetAvailableLobbies", GetAvailableLobbies)
+
+WSrouter.on("UploadNewUserData",UploadNewUserData)
 
 WSrouter.on("StartSession", startSession)
 WSrouter.on("CancelSearch", CancelRequest)

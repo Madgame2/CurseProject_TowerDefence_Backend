@@ -4,6 +4,7 @@ import lobbyService from "../Services/LobbyService/Lobby.Service";
 import { RequestJoinToLobbyDTO } from "../dto/RequestJoinToLobby";
 import { LobbyNotFoundException } from "../Exceptions/LobbyNotFoundException";
 import { LobbyFullException } from "../Exceptions/LobbyFullException";
+import { redis } from "../../config/redis.config";
 
 
 
@@ -37,5 +38,19 @@ export const joinToLobbyRequest = async( ctx: WSContext)=>{
 
 
 export const joinToLobbyByInviteCode = async (ctx: WSContext)=>{
+ 
+    const requestData = ctx.message?.payload;
+    const LobbyId = await redis.get(`invite:${requestData.code}`);
 
+    if(!LobbyId){
+        const responce :WSResponse = {code:404, requestId: ctx.requestId}
+        ctx.ws.send(JSON.stringify(responce));
+    }
+
+    lobbyService.sendRequestToJoin(ctx.userId! ,LobbyId!)
+    console.log("вроде отправил(");
+
+
+    const responce :WSResponse = {code:200, requestId: ctx.requestId}
+    ctx.ws.send(JSON.stringify(responce));
 }

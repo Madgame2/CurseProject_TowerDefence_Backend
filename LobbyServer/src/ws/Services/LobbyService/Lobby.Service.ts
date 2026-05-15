@@ -12,7 +12,6 @@ import { LobbyUser } from "../../types/LobbyUser";
 import { lobbyStorage } from "./LobbyStorage/LobbyStorage";
 import { LobbyLua } from "../../../redis/lobbyLua";
 import { LobbyEvents } from "../NotifySustem/Events/LobbyEvents";
-import { channel } from "diagnostics_channel";
 import { LobbyEventBus } from "./LobbyEventBus";
 import { LobbyEvent } from "../../types/LobbyEvent";
 
@@ -22,7 +21,7 @@ import { WSResponse } from "../../../types/WSResponse";
 import { LobbyEventType, LobbyServerEvent } from "../../dto/LobbyServerEvent";
 import { RequestJpinToLobbyMessageDto } from "../../dto/RequestJpinToLobbyMessageDto";
 import { RedisScripts } from "../../../redis/scriptsLoader";
-import { IEvent } from "../NotifySustem/Events/iEvent";
+import { Player } from "../../../models/player.entity";
 
 export class LobbyService{
 
@@ -68,6 +67,10 @@ export class LobbyService{
                 this.notifyUsersAboutLobbyHostChanged(users!, event.newHostId)
             break;
 
+            case "LOBBY_USER_PROFILE_UPDATED":
+                this.notifyUsersAboutLobbyuserChages(users!, event.userProfile)
+            break;
+
             case "LOBBY_PLAYER_LEFT":
                 this.notifyUsersAboutLobbyPlayerLeft(users!, event.userId)
             break;
@@ -75,6 +78,22 @@ export class LobbyService{
             case "LOBBY_PLAYER_JOINED":
                 this.notifyUsersAboutLobbyPlayerJoin(users!,event.lobbyId ,event.userId)
             break;
+        }
+    }
+
+    private notifyUsersAboutLobbyuserChages(users: string[], changedUser:Player){
+        for(var user of users){
+            const client = this.clientMannager?.get(user);
+
+            const res: WSResponse = {
+                code: 200,
+                action: "Lobby_updates",
+                data: {
+                    type: "PLAYER_PROFILE_UPDATE",
+                    profile: changedUser
+                }
+            }
+            client?.ws.send(JSON.stringify(res))
         }
     }
 
@@ -204,6 +223,16 @@ export class LobbyService{
         Notify(event);
     }
 
+    public async NofifyLobbyPUserProfileUpdate(LobbyId:string, data:any){
+
+        const runtimeEvent :LobbyEvent = {
+            type: "LOBBY_USER_PROFILE_UPDATED",
+            lobby: null,
+            lobbyId: LobbyId,
+            userProfile: data
+        }
+        redis.publish("lobby_runtime", JSON.stringify(runtimeEvent));
+    }
 
     public async NotifyRequestToJoin(LobbyID:string, PlayerID:string, requestID:string){
         const lobby = lobbyStorage.get(LobbyID);
