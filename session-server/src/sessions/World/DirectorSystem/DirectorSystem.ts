@@ -5,6 +5,7 @@ import { EnemySpawnData, WaveConfig } from "../WaveSpawner/WaveConfig";
 import { WorldQuery } from "../worldQuery/WorldQuery";
 import { Vector2 } from "src/types/Vector2";
 import { NpcTypes } from "../npc/NpcTypes.enum";
+import { SessionDificulty } from "src/types/Dificulty.enum";
 
 
 enum DirectorState {
@@ -32,7 +33,8 @@ export class DirectorSystem{
 
     constructor(private eventBus: WorldUpdatesStorage,
         private waveSpawner: WaveSpawner,
-        private worldQuery:WorldQuery  ){}
+        private worldQuery:WorldQuery,
+        private difficulty: SessionDificulty){}
 
 
     Update(delta: number){
@@ -79,8 +81,6 @@ export class DirectorSystem{
         this.phaseTimer -= delta;
 
         const enemys = this.worldQuery.getAllEnemies()
-        console.log("phaseTimer: ", this.phaseTimer <= 0);
-        console.log("enemys: ",enemys.length );
         if (this.phaseTimer <= 0&&enemys.length<=0 ) {
             switch (this.phase) {
                 case MatchPhase.PREPARATION:
@@ -129,10 +129,23 @@ export class DirectorSystem{
         this.eventBus.add(message);
     }
 
+    private getDificultiMyltiply():number{
+        console.log(this.difficulty);
+        switch(this.difficulty){
+            case SessionDificulty.Easy:
+                return 1;
+            case SessionDificulty.Normal:
+                return 5;
+            case SessionDificulty.Hard:
+                return 10;
+        }
+    }
+
     getConfig(waveNum: number):WaveConfig{
 
         let enemies :EnemySpawnData[] = [];
-        const enemyCount = 5 + waveNum * 2;
+        console.log(this.getDificultiMyltiply())
+        const enemyCount = (5+ waveNum * 2)*this.getDificultiMyltiply() ;
 
         const rootHouseCenter = this.worldQuery.getRootHousePos();
 

@@ -132,7 +132,7 @@ export class Session extends EventEmitter{
         })
 
         this.stateMachine.registerOnEnter(SessionState.STARTING, async (session)=>{
-            this.world = await this.worldFactory.createWorld(this.Seed);
+            this.world = await this.worldFactory.createWorld(this.Seed,this.Dificulty);
             const sucsesfuluInitedPalyers = await this.playerSyncManager.syncPlayers(this.world);
 
             sucsesfuluInitedPalyers.forEach((i)=>{

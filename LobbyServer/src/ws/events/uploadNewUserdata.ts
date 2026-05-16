@@ -18,10 +18,14 @@ export const UploadNewUserData = async (ctx: WSContext) => {
         console.log(ctx.message);
         const data = ctx.message?.payload as UploadNewUserDataDto;
 
+        console.log("IMAGE TYPE:", typeof data.newImage);
+        console.log("IS ARRAY:", Array.isArray(data.newImage));
+        console.log("LENGTH:", data.newImage?.length);
+        console.log("FIRST 10:", data.newImage?.slice?.(0, 10));
         if (!data?.userId) {
             const err: WSResponse ={
                 code:404,
-                requestId: ctx.message?.requestId!
+                requestId: ctx.requestId
             }
             ctx.ws.send(JSON.stringify(err));
             return;
@@ -31,7 +35,7 @@ export const UploadNewUserData = async (ctx: WSContext) => {
         if (!user) {
             const err: WSResponse ={
                 code:404,
-                requestId: ctx.message?.requestId!
+                requestId: ctx.requestId
             }
             ctx.ws.send(JSON.stringify(err));
             return;
@@ -43,9 +47,7 @@ export const UploadNewUserData = async (ctx: WSContext) => {
 
         if (data.newImage && data.newImage.length > 0) {
 
-            const buffer = Buffer.from(data.newImage);
-
-            // папка хранения
+            const buffer = Buffer.from(data.newImage, "base64");            // папка хранения
             const uploadDir = path.join(process.cwd(), "uploads/avatars");
 
             if (!fs.existsSync(uploadDir)) {
@@ -70,7 +72,7 @@ export const UploadNewUserData = async (ctx: WSContext) => {
 
         const res :WSResponse = {
             code:200,
-            requestId: ctx.message?.requestId!
+            requestId: ctx.requestId
         }
         ctx.ws.send(JSON.stringify(res));
 

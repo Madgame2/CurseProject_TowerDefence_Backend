@@ -31,30 +31,30 @@ export class PlayerEventBinder {
         router.onRpc("MoveTo", (ctx) => {
             const payload = ctx.message?.payload;
             const playerWorldObj = player.session.world.getPlayer(ctx.userId!);
-            const target: Vector3 = new Vector3(payload.X, 0, payload.Z);
+            // const target: Vector3 = new Vector3(payload.X, 0, payload.Z);
 
-            if(playerWorldObj!.state == PlayerStates.BLOCKED_ADN_HIDE) return;
+            // if(playerWorldObj!.state == PlayerStates.BLOCKED_ADN_HIDE) return;
 
-            player.session.world.movementService.setMoveTarget(
-                ctx.userId!,
-                target
-            );
-            playerWorldObj!.state = PlayerStates.RUNING;
+            // player.session.world.movementService.setMoveTarget(
+            //     ctx.userId!,
+            //     target
+            // );
+
+            const _target: Vector2 = new Vector2(payload.X, payload.Z);
+            playerWorldObj?.eventAgent.MoveToEvent(_target);
+            //playerWorldObj!.state = PlayerStates.RUNING;
         });
 
         router.on("BuildObject", (message)=>{
             const payload = message.payload;
             const ctx = player.ctx;
 
-            console.log("BuildObject EVENT");
-            console.log(payload);
             if (!payload) return;
 
             const data: RequestForBuilding = typeof payload === "string"
                     ? JSON.parse(payload)
                     : payload;
             
-            console.log(data);
             const playerWorldObj = player.session.world.getPlayer(ctx.userId!);
             const worldPos: Vector2 = new Vector2(data.worldX, data.worldZ)
             playerWorldObj?.eventAgent.StartBuildingEvent(worldPos,data.buildNetID)

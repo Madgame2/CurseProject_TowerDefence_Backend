@@ -42,6 +42,8 @@ export class GuardianBehavior implements INpcBehavior, IPatrolBehavior{
 
     
     update(npc: INpc, delta: number): void {
+
+        this.attackCooldown -= delta;
         if(!this.HasTarget()){
             this.logging(npc,delta)
         }else{
@@ -73,7 +75,7 @@ export class GuardianBehavior implements INpcBehavior, IPatrolBehavior{
             target.radius +
             guardian.config.attackRange;
 
-        const chaseDistance = attackDistance - 0.5;
+        const chaseDistance = attackDistance - 0.75;
 
         if (distance > chaseDistance) {
 
@@ -127,9 +129,6 @@ export class GuardianBehavior implements INpcBehavior, IPatrolBehavior{
         if(distance > attackDistance){
             return;
         }
-
-
-        this.attackCooldown -= delta;
 
         if(this.attackCooldown > 0){
             return;

@@ -27,12 +27,15 @@ export class BuildSystem{
     constructor(private readonly worldQuery: WorldQuery, private readonly world:World){}
 
     async PreperForBuilding(playerID:string ,worldPos: Vector2, buildNetId: number){
+        const player = this.world.getPlayer(playerID);
+        if(player!.state == PlayerStates.BLOCKED_ADN_HIDE) return;
+
         if(!this.worldQuery.isPositionFree(worldPos)) return;
 
         this._buildingUnderConstraction.set(playerID,{pos: worldPos, buildId:buildNetId});
         this.worldQuery.setBlock(worldPos.x,worldPos.y, buildNetId);
 
-        const player = this.world.getPlayer(playerID);
+        
 
         player?.navAgent.setTarget(worldPos);
         player!.state = PlayerStates.IN_RUNNING_BUILD;
@@ -47,9 +50,7 @@ export class BuildSystem{
         this.world.worldUpdatesStorage.add(UpdateWorlddata);
 
         const result = await this.waitUntilGetClose(player!, worldPos, 1)
-        console.log(result);
         if(result){
-            console.log("ДОЛЖЕН НАЧАТЬ СТРОИТЬ")
             this.startBuilding(playerID, worldPos, buildNetId)
         }else{
             this.CancelPrepearingForBuilding(playerID)
@@ -63,6 +64,15 @@ export class BuildSystem{
 
         this.worldQuery.setBlock(data.pos.x,data.pos.y, 0);
         this._buildingUnderConstraction.delete(PlayerId);
+
+        const UpdateWorlddata : ChankUpdate = {
+                type: "chunk",
+                chankPos: this.worldQuery.getChankPos(data.pos.x, data.pos.y),
+                chankCell:  this.worldQuery.getlocalBlockPos(data.pos.x, data.pos.y),
+                cellData: 0
+            }
+
+        this.world.worldUpdatesStorage.add(UpdateWorlddata);
     }
 
     private startBuilding(playerId: string, worldPos: Vector2, buildingId:number){
@@ -85,7 +95,6 @@ export class BuildSystem{
                         cellData: 3
                     }
 
-                    console.log(UpdateWorlddata);
                 this.world.worldUpdatesStorage.add(UpdateWorlddata);
 
                 const event: EnityEvent ={
@@ -295,12 +304,14 @@ export class BuildSystem{
         const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
         while (true) {
-            console.log("player: ", player.position, " target: ",targetPos);
             const playerPos = new Vector2(player.position.x, player.position.z);
             const distance = Vector2.subtract(playerPos, targetPos).length();
-            console.log(distance)
             if (distance <= radius) {
                 return true;
+            }
+
+            if(!this._buildingUnderConstraction.has(player.id)){
+                return false;
             }
 
             if (player.state !== PlayerStates.IN_RUNNING_BUILD) {

@@ -1,7 +1,7 @@
 
 
 export enum SessionDificulty{
-    'Easy',
-    "Normal",
-    "Hard"
+    Easy= 'Easy',
+    Normal="Normal",
+    Hard= "Hard"
 }

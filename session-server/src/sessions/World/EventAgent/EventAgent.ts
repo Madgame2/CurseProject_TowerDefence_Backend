@@ -3,7 +3,7 @@ import { Player } from "../Entities/Player";
 import { IPlayerEvent } from "./IEvent";
 
 export enum PlayerEventType{
-
+    MOVE_TO = "MOVE_TO",
     RUNNING = "RUNNING",
     RUN_TO_BUILD = "RUN_TO_BUILD"
 }
@@ -17,10 +17,18 @@ export class EventAgent{
 
     constructor(private readonly playerId: string){}
 
+    public MoveToEvent(WorldPos:Vector2){
+        if(this.currentEvent) {
+            const result = this.currentEvent.cancelEvent(this.playerId)
+            if(!result){
+                return;
+            }
+        }
+        this.currentEvent = this.events[PlayerEventType.MOVE_TO];
+        this.currentEvent?.processEvent({playerID:this.playerId , worldPos: WorldPos})
+    }
 
     public StartBuildingEvent(WorldPos:Vector2, buildNetID: number){
-
-        console.log(buildNetID);
         if(this.currentEvent) {
             const result = this.currentEvent.cancelEvent(this.playerId)
             if(!result){

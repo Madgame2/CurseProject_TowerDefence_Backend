@@ -116,9 +116,11 @@ export class LobbyService{
 
     private async notifyUsersAboutLobbyPlayerJoin (users: string[], newLobbyId:string , joinedUserId:string){
         const JoindeUserProfile = await this.profileService.getProfile(joinedUserId)
+        console.log("ОТПРАВЛЯЕМ СОБЫТИЯ++++++++++++++++++++++++++++++++++");
         for(var user of users){
+            console.log(user);
             const client = this.clientMannager?.get(user);
-
+            
             let res: WSResponse;
             if(client?.userId == joinedUserId){
                 const newLobby = await this.GetLobby(newLobbyId);
@@ -369,8 +371,6 @@ export class LobbyService{
 
         lobby.usersProfiles = profiles;
 
-        console.log(lobby);
-
         return lobby;
     }
 
@@ -427,7 +427,8 @@ export class LobbyService{
 
                     return {
                         id: userProfile!.id.toString(),
-                        NickName: userProfile!.nickname
+                        NickName: userProfile!.nickname,
+                        HeaderImage: userProfile!.headerImageSource
                     } as LobbyUser;
                 })
             );
@@ -441,6 +442,7 @@ export class LobbyService{
                 lobbyId: lobby.id
             })
 
+            console.log(lobby.usersProfiles);
             return lobby;
         } catch (e) {
             await this.uof.rollback();
@@ -449,6 +451,8 @@ export class LobbyService{
     }
 
     public async JoinToLobby_new(userId:string, requestId:string ,newLobbyId:string):Promise<void>{
+
+        
         const raw = await redis.evalsha(
             RedisScripts.joinToOtherLobbySha,
             2,
@@ -461,7 +465,9 @@ export class LobbyService{
         if(!raw) return;
 
         const result = JSON.parse(raw as string);
-        
+        console.log("РЕЗУЛЬТАТ РЕДИСА");
+        console.log(result);
+        console.log("+++++++++++++++++++++++++++++++++++");
         const runTime_events: LobbyEvent[] = [];
         const globalEvents_events: LobbyEvent[] = [];
 
@@ -507,10 +513,126 @@ export class LobbyService{
             userId: userId
         })
 
-        await Promise.all(globalEvents_events.map(e => LobbyEvents.publish(e)));
-        await Promise.all(runTime_events.map(e => redis.publish("lobby_runtime", JSON.stringify(e))));
+        await Promise.all(globalEvents_events.map(e => this.handleMessage("lobby_updates",JSON.stringify(e))));
+        await Promise.all(runTime_events.map(e => this.handleMessage("lobby_runtime",JSON.stringify(e))));        
     }
     
+    public async LeaveAndCreateLobby(userId:string): Promise<void> {
+        
+        const newLobbyId = crypto.randomUUID();
+        const inviteCode = this.generateInviteCode();
+        const profile = await ProfileService.getProfile(userId);
+        
+        const raw = await redis.evalsha(
+            RedisScripts.leaveAndCreateLobbySha,
+            0,
+
+            userId,
+            newLobbyId,
+            inviteCode,
+
+            profile!.nickname,
+            profile!.headerImageSource ?? "defoult"
+        );
+
+        
+
+
+        if(!raw) return;
+
+        const result = JSON.parse(raw as string);
+        const runtimeEvents: LobbyEvent[] = [];
+        const globalEvents: LobbyEvent[] = [];
+
+            const lobby =
+        new Lobby(
+            result.newLobbyId,
+            userId,
+            profile!.nickname,
+            inviteCode,
+            profile!.headerImageSource
+        );
+
+
+        const profiles =
+        await Promise.all(
+
+            lobby.users.map(
+                async(id:string)=>{
+
+                    const userProfile =
+                        await ProfileService.getProfile(id);
+
+                    return {
+
+                        id:
+                            userProfile!.id.toString(),
+
+                        NickName:
+                            userProfile!.nickname
+
+                    } as LobbyUser;
+
+                })
+        );
+
+
+        lobby.usersProfiles =
+            profiles;
+
+        await LobbyEvents.publish({
+            type:"LOBBY_CREATED",
+            lobbyId:lobby.id,
+            lobby:lobby
+        });
+
+        console.log(result);
+        if(result.oldLobbyId){
+
+                if(result.deletedLobby){
+                    globalEvents.push({
+                        type:"LOBBY_DELETED",
+                        lobbyId:result.oldLobbyId,
+                        lobby:null
+                    });
+                }
+                else{
+
+                    globalEvents.push({
+                        type:"LOBBY_UPDATED",
+                        lobbyId:result.oldLobbyId,
+                        lobby:null
+                    });
+
+                    runtimeEvents.push({
+                        type:"LOBBY_PLAYER_LEFT",
+                        lobbyId:result.oldLobbyId,
+                        userId:userId,
+                        lobby:null
+                    });
+
+                    if(result.newHost){
+                        runtimeEvents.push({
+                            type:"LOBBY_HOST_CHANGED",
+                            lobbyId:result.oldLobbyId,
+                            newHostId:result.newHost,
+                            lobby:null
+                    });
+                }
+            }
+        }
+
+
+        runtimeEvents.push({
+            type:"LOBBY_PLAYER_JOINED",
+            lobbyId:result.newLobbyId,
+            userId:userId,
+            lobby:null
+        });
+
+        await Promise.all(globalEvents.map(e => this.handleMessage("lobby_updates",JSON.stringify(e))));
+        await Promise.all(runtimeEvents.map(e => this.handleMessage("lobby_runtime",JSON.stringify(e))));  
+    }
 
     public async joinLobby(userId: string, newLobbyId:string): Promise<void> {
     await this.uof.start(); 

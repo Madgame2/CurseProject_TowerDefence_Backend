@@ -9,14 +9,17 @@ import { redis,redisSub } from "./config/redis.config";
 import { LobbyServerRegistry } from "./ws/Services/LobbyServerInitService/LobbyServerInitService";
 import { PingWatcher } from "./ws/Services/PingWatcher";
 import { setupWebSocket } from "./ws/setupWebSocket";
-
+import path from "path";
 
 
 
 const serverId = process.env.SERVER_ID || "lobby-1";
+const uploadsPath = path.join(__dirname, '..', 'uploads');
+
 
 const app = express();
 app.use(express.json());
+app.use('/uploads', express.static(uploadsPath));
 app.use(router);
 
 const httpServer = createServer(app);

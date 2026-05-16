@@ -18,6 +18,7 @@ import { EntitiesFactory } from "./EntitiesSystem/EnitiesFactory";
 import { DirectorSystem } from "./DirectorSystem/DirectorSystem";
 import { WaveSpawner } from "./WaveSpawner/WaveSpawner";
 import { NpcFactory } from "./npc/Factory/NpcFactory";
+import { SessionDificulty } from "src/types/Dificulty.enum";
 
 
 @Injectable()
@@ -25,7 +26,7 @@ export class WorldFactory{
 
     constructor(private readonly configService: ConfigService){}
 
-    async createWorld(seed:number):Promise<World>{
+    async createWorld(seed:number,difficulty: SessionDificulty):Promise<World>{
         const newWorld = new World;
         const chankManager = new ChankManager(this.configService.get<number>('CHANK_SIZE') ?? 16);
         const StructService = new StructureService(newWorld.worldQuery, chankManager)
@@ -39,7 +40,7 @@ export class WorldFactory{
         const npcFactory = new NpcFactory(pathfindingService, newWorld.worldQuery, worldUpdatesStoarage);
         const entityFactory = new EntitiesFactory(StructService,newWorld.worldQuery, worldUpdatesStoarage,npcFactory,newWorld);
         const waveSpawner = new WaveSpawner(npcFactory,newWorld)
-        const directorSystem = new DirectorSystem(worldUpdatesStoarage,waveSpawner,newWorld.worldQuery);
+        const directorSystem = new DirectorSystem(worldUpdatesStoarage,waveSpawner,newWorld.worldQuery,difficulty);
 
         chankManager.worldQuery = newWorld.worldQuery;
         newWorld.setSystems(chankManager,movementService,worldSimulationService,playerFactory,decorationGenerator, pathfindingService, buildSystem, worldUpdatesStoarage,entityFactory, directorSystem,waveSpawner);

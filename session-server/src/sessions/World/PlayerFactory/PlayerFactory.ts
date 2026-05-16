@@ -6,6 +6,7 @@ import { NoFreeSpaceException } from "src/Exceptions/NoFreeSpaceException";
 import { NavAgent } from "../NavSystem/NavAgent";
 import { EventAgent, PlayerEventType } from "../EventAgent/EventAgent";
 import { BuidlEvent } from "../EventAgent/Events/Build.event";
+import { MovementEvent } from "../EventAgent/Events/Movement.event";
 
 
 export class PlayerFactory{
@@ -17,9 +18,10 @@ export class PlayerFactory{
 
         const navAgent = new NavAgent(this.world.pathfindingService);
         const eventAgent = new EventAgent(PlayerId);
-        eventAgent.linkType_Emiter(PlayerEventType.RUN_TO_BUILD, new BuidlEvent(this.world.builderSystem))
-
         const player = new Player(PlayerId,navAgent, eventAgent);
+
+        eventAgent.linkType_Emiter(PlayerEventType.RUN_TO_BUILD, new BuidlEvent(this.world.builderSystem))
+        eventAgent.linkType_Emiter(PlayerEventType.MOVE_TO, new MovementEvent(player, this.world.movementService))
 
         let position = this.setPlayerPosition(spawnCenter, radius)
         

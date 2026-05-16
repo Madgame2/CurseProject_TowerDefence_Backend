@@ -69,7 +69,7 @@ export class SesionManager{
                     throw new Error('Failed to parse session JSON from Redis');
                 }
         
-
+                console.log(resultObj);
             const networkSysncService: NetworkSysncService = new NetworkSysncService(this.clientRegistryService)
             const session = new Session(
                 String(resultObj.SessionID),

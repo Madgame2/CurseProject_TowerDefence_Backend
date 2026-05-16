@@ -40,11 +40,14 @@ export const joinToLobbyRequest = async( ctx: WSContext)=>{
 export const joinToLobbyByInviteCode = async (ctx: WSContext)=>{
  
     const requestData = ctx.message?.payload;
+    console.log(requestData);
     const LobbyId = await redis.get(`invite:${requestData.code}`);
 
+    console.log(LobbyId);
     if(!LobbyId){
         const responce :WSResponse = {code:404, requestId: ctx.requestId}
         ctx.ws.send(JSON.stringify(responce));
+        return;
     }
 
     lobbyService.sendRequestToJoin(ctx.userId! ,LobbyId!)
