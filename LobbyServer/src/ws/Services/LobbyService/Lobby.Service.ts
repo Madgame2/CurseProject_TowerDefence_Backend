@@ -317,13 +317,10 @@ export class LobbyService{
             const aFull = a.users.length >= a.maxSize;
             const bFull = b.users.length >= b.maxSize;
 
-            // если a не полный, b полный → a раньше
             if (!aFull && bFull) return -1;
 
-            // если a полный, b не полный → b раньше
             if (aFull && !bFull) return 1;
 
-            // иначе равны по приоритету
             return 0;
         });
 
@@ -393,7 +390,6 @@ export class LobbyService{
         await this.uof.start();
 
         try {
-            // Проверка существующего лобби через обычный get
             const userLobby = await this.lobbyrep.getUserLobby(hadmaster);
             const hadmasterProfile = await ProfileService.getProfile(hadmaster);
 
@@ -401,11 +397,9 @@ export class LobbyService{
                 throw new UserAlreadInLobbyException(hadmaster, userLobby);
             }
 
-            // Создание нового lobby
             const newLobbyId = crypto.randomUUID();
             const inviteCode = this.generateInviteCode()
 
-            // Сохраняем все данные в Redis через MULTI
             await this.uof.redisCommand(async (multi) => {
                     multi.set(`lobby:${newLobbyId}:host`, hadmaster);
                     multi.sadd(`lobby:${newLobbyId}:users`, hadmaster);
@@ -416,10 +410,9 @@ export class LobbyService{
                     multi.set(`invite:${inviteCode}`, newLobbyId);
 
                 multi.sadd("lobbies",newLobbyId);
-                await multi.exec(); // exec вызываем только один раз
+                await multi.exec(); 
             });
 
-            // Создаём объект Lobby
             const lobby = new Lobby(newLobbyId, hadmaster,hadmasterProfile!.nickname,inviteCode, hadmasterProfile!.headerImageSource);
             const profiles = await Promise.all(
                 lobby.users.map(async (id: string) => {
@@ -442,7 +435,6 @@ export class LobbyService{
                 lobbyId: lobby.id
             })
 
-            console.log(lobby.usersProfiles);
             return lobby;
         } catch (e) {
             await this.uof.rollback();
@@ -465,9 +457,6 @@ export class LobbyService{
         if(!raw) return;
 
         const result = JSON.parse(raw as string);
-        console.log("РЕЗУЛЬТАТ РЕДИСА");
-        console.log(result);
-        console.log("+++++++++++++++++++++++++++++++++++");
         const runTime_events: LobbyEvent[] = [];
         const globalEvents_events: LobbyEvent[] = [];
 
@@ -526,17 +515,12 @@ export class LobbyService{
         const raw = await redis.evalsha(
             RedisScripts.leaveAndCreateLobbySha,
             0,
-
             userId,
             newLobbyId,
             inviteCode,
-
             profile!.nickname,
             profile!.headerImageSource ?? "defoult"
         );
-
-        
-
 
         if(!raw) return;
 
@@ -675,43 +659,91 @@ export class LobbyService{
                 lobbyId
             });
 
-            if (result === 1) {
-            await LobbyEvents.publish({
-                type: "LOBBY_DELETED",
+            console.log(result);
+            // если Lua ничего не вернул
+            if (!result) return;
+
+            const { lobbyDeleted, newHost } = result;
+
+            // =========================
+            // 1. ЛОББИ УДАЛЕНО
+            // =========================
+            if (lobbyDeleted) {
+                await LobbyEvents.publish({
+                    type: "LOBBY_DELETED",
+                    lobbyId,
+                    lobby: null
+                });
+
+                return;
+            }
+
+            // =========================
+            // 2. СМЕНА HOST (если была)
+            // =========================
+            if (newHost) {
+                const runtimeEvent: LobbyEvent = {
+                    type: "LOBBY_HOST_CHANGED",
+                    lobbyId: lobbyId,
+                    newHostId: newHost,
+                    lobby: null
+                };
+                console.log(runtimeEvent);
+                this.handleMessage(
+                    "lobby_runtime",
+                    JSON.stringify(runtimeEvent)
+                );
+            }
+
+            // =========================
+            // 3. ОБЫЧНЫЙ DISCONNECT
+            // =========================
+            const runtimeEvent: LobbyEvent = {
+                type: "LOBBY_PLAYER_LEFT",
                 lobbyId,
+                userId,
                 lobby: null
-            })}
+            };
 
+            this.handleMessage(
+                "lobby_runtime",
+                JSON.stringify(runtimeEvent)
+            );
 
+            const globalEvents: LobbyEvent = {
+                type: "LOBBY_UPDATED",
+                lobbyId: lobbyId,
+                lobby: null
+            };
+            await LobbyEvents.publish(globalEvents);
+
+            this.handleMessage(
+                "lobby_runtime",
+                JSON.stringify(runtimeEvent)
+            );
+
+            // =========================
+            // 4. LAST TASK CLEANUP
+            // =========================
             const lastTaskId = await redis.get(`index:lobby:${lobbyId}:lastTask`);
 
             if (lastTaskId) {
                 const taskKey = `mm:task:${lastTaskId}`;
 
-                // проверяем что задача существует
                 const exists = await redis.exists(taskKey);
 
                 if (exists) {
                     const status = await redis.hget(taskKey, "status");
 
-                    // не перетираем уже выполненные задачи
                     if (status === "queued") {
                         await redis.hset(taskKey, "status", "cancelled");
-
                         await redis.del(`index:lobby:${lobbyId}:lastTask`);
                     }
-                }else{
+                } else {
                     await redis.del(`index:lobby:${lobbyId}:lastTask`);
                 }
             }
 
-            else{
-            await LobbyEvents.publish({
-                type: "LOBBY_UPDATED",
-                lobbyId: lobbyId,
-                lobby: null
-            })}
-            
         } catch (e) {
             console.error("Disconnect failed", e);
         }

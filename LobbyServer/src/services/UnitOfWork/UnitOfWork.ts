@@ -12,8 +12,8 @@ export class UnitOfWork {
   public players!: IPlayerRepository;
   public lobby?: ILobbyRepository = new Lobbyreposiory();
   private transaction?: Transaction | undefined;
-  private redisClient: Redis;          // клиент ioredis
-  private redisMulti?: ReturnType<RedisClient["multi"]> | null = null;  // MULTI / pipeline для атомарных команд
+  private redisClient: Redis;          
+  private redisMulti?: ReturnType<RedisClient["multi"]> | null = null; 
 
 
   constructor(redisClient: Redis) {
@@ -21,12 +21,8 @@ export class UnitOfWork {
   }
 
   async start() {
-    // Создаём транзакцию
     this.transaction = await sequelize.transaction();
-
-    // Привязываем репозитории к этой транзакции
     this.players = new PlayerRepository_DB(this.transaction);
-
     this.redisMulti = this.redisClient.multi();
   }
 
@@ -50,9 +46,7 @@ export class UnitOfWork {
     if (!this.transaction) throw new Error("Transaction not started");
     await this.transaction.rollback();
     this.transaction = undefined;
-
-
-
+    
     this.redisMulti = null;
   }
 

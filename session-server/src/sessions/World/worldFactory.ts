@@ -40,7 +40,7 @@ export class WorldFactory{
         const npcFactory = new NpcFactory(pathfindingService, newWorld.worldQuery, worldUpdatesStoarage);
         const entityFactory = new EntitiesFactory(StructService,newWorld.worldQuery, worldUpdatesStoarage,npcFactory,newWorld);
         const waveSpawner = new WaveSpawner(npcFactory,newWorld)
-        const directorSystem = new DirectorSystem(worldUpdatesStoarage,waveSpawner,newWorld.worldQuery,difficulty);
+        const directorSystem = new DirectorSystem(worldUpdatesStoarage,waveSpawner,newWorld.worldQuery,difficulty,buildSystem);
 
         chankManager.worldQuery = newWorld.worldQuery;
         newWorld.setSystems(chankManager,movementService,worldSimulationService,playerFactory,decorationGenerator, pathfindingService, buildSystem, worldUpdatesStoarage,entityFactory, directorSystem,waveSpawner);

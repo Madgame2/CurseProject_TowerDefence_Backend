@@ -61,8 +61,6 @@ export class LobbyNotifier implements Notifier<LobbyEvent> {
     // 🔹 Глобальные подписки
     public subscribeToGlobalEvents(userId: string) {
         this.globalSubscribers.add(userId);
-
-        console.log(this.globalSubscribers);
     }
 
     public unsubscribeUserFromGlobalEvents(userId: string) {
@@ -95,23 +93,15 @@ private sendSafe(userId: string, event: LobbyEvent, action: string): boolean {
 
 public async emit(event: LobbyEvent) {
     const deadGlobalUsers: string[] = [];
-
-    // 🔹 Глобальные подписчики
-    console.log("LobbysNofifaer")
-    console.log(this.globalSubscribers);
-
     for (const userId of this.globalSubscribers) {
         if (!this.sendSafe(userId, event, "LobbysUpdated")) {
             deadGlobalUsers.push(userId);
         }
     }
 
-    // чистим мертвых
     for (const userId of deadGlobalUsers) {
         this.globalSubscribers.delete(userId);
     }
-
-    // 🔹 Подписчики лобби
     const users = this.lobbyToUsers.get(event.lobbyId);
     if (!users) return;
 
@@ -123,7 +113,6 @@ public async emit(event: LobbyEvent) {
         }
     }
 
-    // чистим мертвых из лобби
     for (const userId of deadLobbyUsers) {
         this.unsubscribeUserFromLobbyLocalUpdates(userId);
     }

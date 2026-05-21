@@ -1,4 +1,5 @@
 import { ChankUpdate } from "./ChankUpdate";
+import { CommnonInfo } from "./CommonInfo";
 import { DireectorUpdatePacket } from "./DirectorUpdatePaket";
 import { EnityEvent } from "./EnityState";
 import { NpcUpdatePacket } from "./NpcUpdatepakcet";
@@ -12,4 +13,5 @@ export interface WorldUpdateData {
     enities?: EnityEvent[];
     npc?:NpcUpdatePacket[];
     director?: DireectorUpdatePacket[];
+    common?: CommnonInfo[];
 }

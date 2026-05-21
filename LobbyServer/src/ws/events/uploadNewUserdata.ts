@@ -15,13 +15,7 @@ const BASE_URL =
 
 export const UploadNewUserData = async (ctx: WSContext) => {
     try {
-        console.log(ctx.message);
         const data = ctx.message?.payload as UploadNewUserDataDto;
-
-        console.log("IMAGE TYPE:", typeof data.newImage);
-        console.log("IS ARRAY:", Array.isArray(data.newImage));
-        console.log("LENGTH:", data.newImage?.length);
-        console.log("FIRST 10:", data.newImage?.slice?.(0, 10));
         if (!data?.userId) {
             const err: WSResponse ={
                 code:404,
@@ -47,24 +41,20 @@ export const UploadNewUserData = async (ctx: WSContext) => {
 
         if (data.newImage && data.newImage.length > 0) {
 
-            const buffer = Buffer.from(data.newImage, "base64");            // папка хранения
+            const buffer = Buffer.from(data.newImage, "base64");
             const uploadDir = path.join(process.cwd(), "uploads/avatars");
 
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
 
-            // уникальное имя файла
             const fileName = `${uuid()}.png`;
 
             const filePath = path.join(uploadDir, fileName);
 
-            // сохраняем файл
             fs.writeFileSync(filePath, buffer);
 
-            // формируем URL
             const avatarUrl = `${BASE_URL}/uploads/avatars/${fileName}`;
-
             user.headerImageSource = avatarUrl;
         }
 

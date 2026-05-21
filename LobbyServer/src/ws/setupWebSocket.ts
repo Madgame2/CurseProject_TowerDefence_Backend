@@ -20,7 +20,8 @@ export function setupWebSocket(server: any) {
     wss.on("connection", async (ws: WebSocket, req) => {
         const ctx: WSContext = { ws, req };
 
-        await runMiddlewares(ctx, [wsAuth,
+        await runMiddlewares(ctx, [
+            wsAuth,
             userState
         ]);
 

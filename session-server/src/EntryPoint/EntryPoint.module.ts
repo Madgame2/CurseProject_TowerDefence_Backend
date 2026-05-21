@@ -6,8 +6,8 @@ import { EntryPointController } from "./EntryPoint.controller";
 
 @Module({
   imports: [
-    SessionModule,       // 🔥 вместо SessionsService
-    ServerStateModule,   // 🔥 вместо ServerStateService
+    SessionModule,       
+    ServerStateModule,   
   ],
   providers: [EntryPointService],
   controllers: [EntryPointController]

@@ -21,22 +21,16 @@ export class MatchmakingWorker {
         while (true){
             const result = await this.redisClient.evalsha(
                 this.rediScripts.takeTaskSha,
-                4, // 👈 теперь 4 KEYS
-
-                "queue:matchmaking",      // KEYS[1]
-                "queue:processing",       // KEYS[2]
-                "lock:matchmaking:",      // KEYS[3] (prefix)
-                "mm:task:",                  // KEYS[4] (task prefix)
-
-                process.env.SERVER_NAME,  // ARGV[1] dispatcherId
-                "60",                     // ARGV[2] ttl
-
-                "queued",               // ARGV[3] expected status
-                "PROCESSING"             // ARGV[4] new status
+                4, 
+                "queue:matchmaking",      
+                "queue:processing",       
+                "lock:matchmaking:",      
+                "mm:task:",                 
+                process.env.SERVER_NAME,  
+                "60",                     
+                "queued",               
+                "PROCESSING"             
             );
-
-            console.log(result);
-
             if(!result){
                 await this.sleep(1000);
                 continue;
@@ -47,8 +41,6 @@ export class MatchmakingWorker {
     }
 
     private async handleJob(taskId: string) {
-        console.log(taskId);
-
         const dispatcherId = process.env.SERVER_NAME!;
         const heartbeat = this.startHeartbeat(taskId, dispatcherId);
 
@@ -93,16 +85,12 @@ export class MatchmakingWorker {
 private async processTask(taskId: string) {
     try {
         await this.delayBeforeProcessing();
-
-        console.log("Проверяю статус")
         const status:string = await this.CheckTaskStatus(taskId);
         if(status!="PROCESSING"){
             await this.handleTaskFailure(taskId, status);
             return;
         }
 
-
-        console.log("Проверяю ищу сервер")
         const server = await this.pickBestServer();
         if (!server) {
             console.warn(`[${taskId}] No available server`);
@@ -200,7 +188,6 @@ private async processTask(taskId: string) {
 
         try {
             const res = await axios.post(url, payload, { timeout: 20000 });
-            console.log("ВЫПОЛНИЛ ЗАДАЧУ");
             console.log(res.data);
             return res.data;
         } catch (err) {

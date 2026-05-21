@@ -94,8 +94,6 @@ export class AuthService {
 
     public confirmprofile = async (dto: ConfirmProfileDTO) =>{
             const existUnconfirmuser = await this._registrationTempService.get(dto.email);
-
-            console.log(existUnconfirmuser);
             if(!existUnconfirmuser){
                   return {
                     code: 404,
@@ -110,18 +108,15 @@ export class AuthService {
                 }
             }
 
-                console.log(dto.code);
-                console.log(existUnconfirmuser.code);
-
             try {
-                await this.uow.start(); // Ждём создания транзакции и репозиториев
-                await this.uow.players.Create(existUnconfirmuser.dto); // Ждём создания игрока
+                await this.uow.start(); 
+                await this.uow.players.Create(existUnconfirmuser.dto); 
                 await this._registrationTempService.delete(dto.email);
-                await this.uow.commit(); // Ждём commit
+                await this.uow.commit(); 
 
                 return {success: true}
             } catch(error) {
-                await this.uow.rollback(); // Ждём rollback
+                await this.uow.rollback(); 
                 throw error;
             }
     }
@@ -144,27 +139,22 @@ export class AuthService {
             sessionId
         };
 
-        // Берем TTL из env, если нет — ставим дефолт "15m"
         const ttl = process.env.JWT_TTL ?? "15m"; 
-
         const options = {
             expiresIn: ttl as "15m" | "30m" | "1h" | "2h" | "1d" 
         };
 
         const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, options);
-
-
         const refreshToken = crypto.randomUUID();
-
         await redis.set(
             `refresh:${refreshToken}`,
                 JSON.stringify({
                     userId: player.id
                 }),
             "EX",
-            60 * 60 * 24 * 30 // 30 дней
+            60 * 60 * 24 * 30 
         );
-
+        
         return {
             accessToken,
             refreshToken
@@ -176,8 +166,6 @@ export class AuthService {
         await this.uow.start();
         const user = await this.uow.players.findByEmail(dto.email);
         await this.uow.commit();
-
-        console.log(dto);
 
         if(!user){
             return {success: false, code: 404}

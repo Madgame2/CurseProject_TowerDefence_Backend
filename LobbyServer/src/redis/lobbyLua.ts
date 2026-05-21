@@ -15,7 +15,7 @@ export class LobbyLua {
 
             if (!inviteCode) return;
 
-        const result = await redis.evalsha(
+        const resultRaw = await redis.evalsha(
                 RedisScripts.lobbyDisconnectSha,
                 9,
                 `lobby:${lobbyId}:users`,
@@ -31,6 +31,13 @@ export class LobbyLua {
                 lobbyId
             );
 
-        return Number(result);
+            if (!resultRaw) return null;
+
+            const [lobbyDeleted, newHost] = resultRaw as [number, string | null];
+
+            return {
+                lobbyDeleted: lobbyDeleted === 1,
+                newHost: newHost ?? null
+            };
         }
 }

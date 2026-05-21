@@ -4,7 +4,6 @@ import lobbyService from "../Services/LobbyService/Lobby.Service";
 
 export const getMyLobby = async (ctx: WSContext) => {
     
-    console.log("tryGetMyLobby");
     try {
         const userId = ctx.userId;
 

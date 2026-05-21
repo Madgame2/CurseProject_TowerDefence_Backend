@@ -7,8 +7,6 @@ if(!process.env.DB_NAME){
     throw Error("not define DB_NAME");
 }
 
-
-
 export const sequelize = new Sequelize (
     process.env.DB_NAME || "master",
     process.env.DB_USER || "sa",

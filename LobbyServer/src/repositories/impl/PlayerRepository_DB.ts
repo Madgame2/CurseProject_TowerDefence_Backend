@@ -20,7 +20,7 @@ export class PlayerRepository_DB implements IPlayerRepository {
     public findByEmail = async (email: string): Promise<Player | null> => {
         return await Player.findOne({
             where: { email },
-        transaction: this.transaction ?? null, // Sequelize ждет null вместо undefined
+        transaction: this.transaction ?? null,
         });
     };
 

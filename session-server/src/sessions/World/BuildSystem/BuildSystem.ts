@@ -13,6 +13,8 @@ import { TeslaTowerInBuild } from "../EntitiesSystem/imp/TeslaTower/TeslaTower.i
 import { TeslaTower } from "../EntitiesSystem/imp/TeslaTower/TeslaTower";
 import { CampInBuild } from "../EntitiesSystem/imp/Camp/Camp.inBuild";
 import { Camp } from "../EntitiesSystem/imp/Camp/Camp";
+import { CommnonInfo } from "src/sessions/Net/models/CommonInfo";
+import { retry } from "rxjs";
 
 type ConstuctorEntity ={
     pos:Vector2,
@@ -21,12 +23,20 @@ type ConstuctorEntity ={
 
 export class BuildSystem{
 
+    private currentBuilded:number = 0;
+    max_builded: number = 4;
 
     private _buildingUnderConstraction : Map<string, ConstuctorEntity> = new Map<string, ConstuctorEntity>();
 
     constructor(private readonly worldQuery: WorldQuery, private readonly world:World){}
 
+    get CurrentBuilded(): number{
+        return this.currentBuilded;
+    }
+
     async PreperForBuilding(playerID:string ,worldPos: Vector2, buildNetId: number){
+        if(this.currentBuilded>=this.max_builded) return;
+
         const player = this.world.getPlayer(playerID);
         if(player!.state == PlayerStates.BLOCKED_ADN_HIDE) return;
 
@@ -34,11 +44,19 @@ export class BuildSystem{
 
         this._buildingUnderConstraction.set(playerID,{pos: worldPos, buildId:buildNetId});
         this.worldQuery.setBlock(worldPos.x,worldPos.y, buildNetId);
-
+        this.currentBuilded++;
         
 
         player?.navAgent.setTarget(worldPos);
         player!.state = PlayerStates.IN_RUNNING_BUILD;
+
+        const commnonInfo : CommnonInfo={
+            type: "Common",
+            buidlSystem:{
+                currentBuilded: this.currentBuilded,
+                max_Buildings: this.max_builded
+            }
+        }
 
         const UpdateWorlddata : ChankUpdate = {
             type: "chunk",
@@ -47,6 +65,7 @@ export class BuildSystem{
             cellData: buildNetId
         }
 
+        this.world.worldUpdatesStorage.add(commnonInfo);
         this.world.worldUpdatesStorage.add(UpdateWorlddata);
 
         const result = await this.waitUntilGetClose(player!, worldPos, 1)
@@ -64,6 +83,7 @@ export class BuildSystem{
 
         this.worldQuery.setBlock(data.pos.x,data.pos.y, 0);
         this._buildingUnderConstraction.delete(PlayerId);
+        this.currentBuilded--;
 
         const UpdateWorlddata : ChankUpdate = {
                 type: "chunk",
@@ -71,8 +91,16 @@ export class BuildSystem{
                 chankCell:  this.worldQuery.getlocalBlockPos(data.pos.x, data.pos.y),
                 cellData: 0
             }
+        const commnonInfo : CommnonInfo={
+            type: "Common",
+            buidlSystem:{
+                currentBuilded: this.currentBuilded,
+                max_Buildings: this.max_builded
+            }
+        }
 
         this.world.worldUpdatesStorage.add(UpdateWorlddata);
+        this.world.worldUpdatesStorage.add(commnonInfo);
     }
 
     private startBuilding(playerId: string, worldPos: Vector2, buildingId:number){

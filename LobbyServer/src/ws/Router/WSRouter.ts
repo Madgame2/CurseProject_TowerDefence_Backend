@@ -16,6 +16,7 @@ import { joinToLobbyByInviteCode, joinToLobbyRequest } from "../events/JoinToLob
 import { ApplyPlayerToJoin } from "../events/ApplyPlayerToJoin";
 import { UploadNewUserData } from "../events/uploadNewUserdata";
 import { LeaveFromLobby } from "../events/LeaveFromLobby";
+import { RemoveUserFromLobby } from "../events/RemoveUserFromLobby";
 
 
 const WSrouter = new WSRouter();
@@ -40,6 +41,7 @@ WSrouter.on("LobbyrequestToJoinByInviteCode", joinToLobbyByInviteCode)
 WSrouter.on("LeaveFromLobby", LeaveFromLobby);
 
 WSrouter.on("ApplyPlayerJoinRequest", ApplyPlayerToJoin)
+WSrouter.on("RemoveUserFromLobby", RemoveUserFromLobby)
 
 WSrouter.on("Events/SubScribeMyLobbyEvents",SubScribeMyLobbyEvents);
 WSrouter.on("Events/SubScribeLobiesEvents",subscribeLobiesEvents);

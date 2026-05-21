@@ -17,14 +17,11 @@ export class SessionSearchService{
     _lobbyService = new LobbyService
 
     public async StartSerach(userID:string ,dto :MatchMakingRequestDTO ){
-        console.log("!SessionSearch!")
-
         const lobby = await  this._lobbyService.GetLobby(dto.LobbyId);
         if(!lobby){
             throw new LobbyNotFoundException()
         }
-        console.log("!SessionSearch!")
-        console.log(lobby)
+
 
         if(lobby.host != userID){
             throw  new WrongLobbyHostException;
@@ -51,7 +48,7 @@ export class SessionSearchService{
                 TaskID,
                 dto.LobbyId,
                 Date.now().toString(),
-                JSON.stringify(dto) // 👈 ВОТ ЭТО ТЫ ЗАБЫЛ
+                JSON.stringify(dto) 
             );
             // 2xx = success
                 return {

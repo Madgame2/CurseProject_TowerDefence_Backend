@@ -9,6 +9,7 @@ import { EnityEvent, EntityEventType } from "./models/EnityState";
 import { DataType, NpcEventType, NpcUpdatePacket } from "./models/NpcUpdatepakcet";
 import { DireectorUpdatePacket } from "./models/DirectorUpdatePaket";
 import { NpcTypes } from "../World/npc/NpcTypes.enum";
+import { CommnonInfo } from "./models/CommonInfo";
 
 
 export class NetworkSysncService{
@@ -39,6 +40,7 @@ export class NetworkSysncService{
         const enitiesEvnets: EnityEvent[] =[]
         const npcUpdates: NpcUpdatePacket[] =[]
         const directorUpdates: DireectorUpdatePacket[] =[]
+        const commonUpdates: CommnonInfo[] =[]
         for (const playerId of playersIds) {
             const player = this.session.world.getPlayer(playerId);
             if (!player) continue;
@@ -68,6 +70,9 @@ export class NetworkSysncService{
                 }
                 case "Director":{
                     directorUpdates.push(update as DireectorUpdatePacket);
+                }
+                case "Common":{
+                    commonUpdates.push(update as CommnonInfo);
                 }
             }
         }
@@ -107,7 +112,8 @@ export class NetworkSysncService{
             chanks: chankUpdates,
             enities: enitiesEvnets,
             npc: npcUpdates,
-            director: directorUpdates
+            director: directorUpdates,
+            common: commonUpdates
         });
 
         const serialized = JSON.stringify(paket);

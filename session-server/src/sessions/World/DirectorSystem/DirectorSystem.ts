@@ -6,6 +6,8 @@ import { WorldQuery } from "../worldQuery/WorldQuery";
 import { Vector2 } from "src/types/Vector2";
 import { NpcTypes } from "../npc/NpcTypes.enum";
 import { SessionDificulty } from "src/types/Dificulty.enum";
+import { BuildSystem } from "../BuildSystem/BuildSystem";
+import { CommnonInfo } from "src/sessions/Net/models/CommonInfo";
 
 
 enum DirectorState {
@@ -34,7 +36,8 @@ export class DirectorSystem{
     constructor(private eventBus: WorldUpdatesStorage,
         private waveSpawner: WaveSpawner,
         private worldQuery:WorldQuery,
-        private difficulty: SessionDificulty){}
+        private difficulty: SessionDificulty,
+        private buildSystem: BuildSystem){}
 
 
     Update(delta: number){
@@ -98,6 +101,15 @@ export class DirectorSystem{
         this.phase = MatchPhase.PREPARATION;
 
         this.phaseTimer =30;
+        this.buildSystem.max_builded+=4;
+
+        const commnonInfo : CommnonInfo={
+            type: "Common",
+            buidlSystem:{
+                currentBuilded: this.buildSystem.CurrentBuilded,
+                max_Buildings: this.buildSystem.max_builded
+            }
+        }
 
         const muthcUpdateData: DireectorUpdatePacket ={
             type: "Director",
@@ -107,6 +119,7 @@ export class DirectorSystem{
             }
         }
         this.eventBus.add(muthcUpdateData);
+        this.eventBus.add(commnonInfo);
     }
     
     private startWave() {
@@ -114,6 +127,11 @@ export class DirectorSystem{
         this.phase = MatchPhase.WAVE;
 
         this.wave++;
+
+        const commnonInfo : CommnonInfo={
+            type: "Common",
+            wave: this.wave
+        }
 
         const config = this.getConfig(this.wave);
         this.waveSpawner.startWave(config);
@@ -126,6 +144,8 @@ export class DirectorSystem{
                 wave: this.wave
             }
         }
+
+        this.eventBus.add(commnonInfo);
         this.eventBus.add(message);
     }
 

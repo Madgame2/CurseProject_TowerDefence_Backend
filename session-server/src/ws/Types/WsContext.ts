@@ -3,6 +3,11 @@ import { IncomingMessage } from "http";
 import { WSMessage } from "./WSMessage";
 
 
+// Middleware тип
+export interface ConnectionMiddleware {
+  handle(client: WSContext, next: (err?: any) => void | Promise<void>): Promise<void> | void;
+}
+
 export interface WSContext {
     ws: WebSocket;
     req: IncomingMessage;
@@ -14,11 +19,6 @@ export interface WSContext {
     message?: WSMessage;
     rawMessage?: string;
     
-    [key: string]: any; // можно расширять под игру
+    [key: string]: any;
 
-}
-
-// Middleware тип
-export interface ConnectionMiddleware {
-  handle(client: WSContext, next: (err?: any) => void | Promise<void>): Promise<void> | void;
 }

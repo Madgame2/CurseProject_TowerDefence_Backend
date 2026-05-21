@@ -55,15 +55,10 @@ export class NavAgent {
         const distToNextSq = toNext.lengthSquared();
         const distToNext = Math.sqrt(distToNextSq);
 
-        // =========================================================
-        // ФИНАЛЬНАЯ ТОЧКА
-        // =========================================================
         if (this.currentIndex === lastIndex - 1) {
 
-            // если за этот кадр дошли или перелетели
             if (distToNext <= moveDistance) {
 
-                // ЖЁСТКИЙ SNAP
                 currentPosition.x = next.x;
                 currentPosition.y = next.y;
 
@@ -74,17 +69,11 @@ export class NavAgent {
             }
         }
 
-        // =========================================================
-        // ОБЫЧНОЕ ДОСТИЖЕНИЕ ТОЧКИ
-        // =========================================================
         if (distToNextSq <= reachRadiusSq) {
             this.currentIndex++;
             return null;
         }
 
-        // =========================================================
-        // ДВИЖЕНИЕ
-        // =========================================================
         return toNext.normalize();
     }
 

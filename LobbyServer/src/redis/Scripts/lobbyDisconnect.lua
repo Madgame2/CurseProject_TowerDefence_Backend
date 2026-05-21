@@ -21,7 +21,7 @@ local userLobbyKey = KEYS[5]
 local hostNameKey = KEYS[6]
 local headerImageKey = KEYS[7]
 local inviteCodeKey = KEYS[8]
-local indexlastTask = KEYS[8]
+local indexlastTask = KEYS[9]
 
 local userId = ARGV[1]
 local lobbyId = ARGV[2]
@@ -31,6 +31,10 @@ redis.call("DEL", userLobbyKey)
 
 local users = redis.call("SMEMBERS", usersKey)
 
+local result = {
+    lobbyDeleted = false,
+    newHost = nil
+}
 
 if (#users == 0) then
     redis.call("DEL", usersKey)
@@ -38,18 +42,19 @@ if (#users == 0) then
     redis.call("DEL", hostNameKey)
     redis.call("DEL", headerImageKey)
     redis.call("DEL", inviteCodeKey)
-
     redis.call("DEL", inviteKey)
     redis.call("SREM", lobbiesKey, lobbyId)
 
-    redis.call("DEL", indexlastTask)
-    return 1
+    result.lobbyDeleted = true
+    return {1, nil}
 end
 
 local host = redis.call("GET", hostKey)
 
 if host == userId and users[1] ~= nil then
     redis.call("SET", hostKey, users[1])
+    return {0, users[1]} -- new host
 end
 
-return 0
+
+return {0, nil}

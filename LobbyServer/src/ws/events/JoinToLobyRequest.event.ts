@@ -10,18 +10,11 @@ import { redis } from "../../config/redis.config";
 
 export const joinToLobbyRequest = async( ctx: WSContext)=>{
     try{
-        console.log("Начинаю отправку сообшения");
-        console.log(ctx.message);
         const requestData = ctx.message?.payload;
-        console.log(requestData);
         lobbyService.sendRequestToJoin(ctx.userId! ,requestData.LobbyID)
-        console.log("вроде отправил(");
-
-
         const responce :WSResponse = {code:200, requestId: ctx.requestId}
         ctx.ws.send(JSON.stringify(responce));
     }catch(ex){
-
         console.log(ex);
         if(ex instanceof LobbyNotFoundException){
             const resError :WSResponse = {code:404, requestId: ctx.requestId, message: "LobbyNotFound"}
@@ -40,10 +33,8 @@ export const joinToLobbyRequest = async( ctx: WSContext)=>{
 export const joinToLobbyByInviteCode = async (ctx: WSContext)=>{
  
     const requestData = ctx.message?.payload;
-    console.log(requestData);
     const LobbyId = await redis.get(`invite:${requestData.code}`);
 
-    console.log(LobbyId);
     if(!LobbyId){
         const responce :WSResponse = {code:404, requestId: ctx.requestId}
         ctx.ws.send(JSON.stringify(responce));
@@ -51,9 +42,6 @@ export const joinToLobbyByInviteCode = async (ctx: WSContext)=>{
     }
 
     lobbyService.sendRequestToJoin(ctx.userId! ,LobbyId!)
-    console.log("вроде отправил(");
-
-
     const responce :WSResponse = {code:200, requestId: ctx.requestId}
     ctx.ws.send(JSON.stringify(responce));
 }

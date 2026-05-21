@@ -74,7 +74,6 @@ export class WsGateway implements OnGatewayConnection {
           this.useDisconnect
         ])
 
-        console.log(ctx.userId, " дисконектнулся");
         this.sessionManager.removeClient(ctx.sessionId!, ctx.userId!)
         connection.router.destroy?.();
     })

@@ -45,14 +45,16 @@ export class TeslaTower implements IEntity{
             this.eventBuss = eventBuss;
     }
 
+    getState()  {
+        return {}
+    }
+
     update(delta: number) {
         
         this.tryShoot(delta)
     }
     
-    getState()  {
-        return {}
-    }
+
 
     private tryShoot(delta: number){
 
@@ -184,79 +186,6 @@ export class TeslaTower implements IEntity{
             this.PrintNode(child, depth + 1);
         }
     }
-    // private ShootTo(clothestTarget: INpc){
-
-    //     this.attackCooldown = this.fireRate;
-
-    //     const rootNode = new LightNode();
-    //     rootNode.npc = clothestTarget;
-
-    //     const visited = new Set<string>([clothestTarget.id]);
-
-    //     let currentNode: LightNode | null = rootNode;
-    //     let jumpsLeft = this.JumpCount;
-
-    //     while (currentNode && jumpsLeft > 0) {
-    //         const candidates = this.worldQuery.getNPCsByBehavior(
-    //             currentNode.npc.position,
-    //             currentNode.readius,
-    //             BehaviorTypes.ENEMY
-    //         );
-
-    //         const sorted = this.SortByDistance(currentNode.npc.position, candidates);
-
-    //         // собираем очередь новых целей
-    //         for (const npc of sorted) {
-    //             if (!visited.has(npc.id)) {
-    //                 currentNode.queue.push(npc);
-    //             }
-    //         }
-
-    //         const nextNpc = currentNode.queue.pop();
-
-    //         if (!nextNpc) {
-    //             // откат назад по дереву
-    //             currentNode = currentNode.parent;
-    //             continue;
-    //         }
-
-    //         visited.add(nextNpc.id);
-
-    //         const nextNode = new LightNode();
-    //         nextNode.npc = nextNpc;
-    //         currentNode.children.push(nextNode);
-    //         nextNode.parent = currentNode;
-
-    //         currentNode = nextNode;
-    //         jumpsLeft--;
-    //     }
-
-    //     const npcIdsTree = this.GetNPCIdsTree(rootNode);
-    //     const dmagedNpcs = this.dfs(rootNode)
-
-    //     for(let node of dmagedNpcs){
-    //         const currentNpc = node.npc;
-
-    //         if(currentNpc as IAttackable){
-    //             currentNode.takeDamage(this.damage);
-    //         }
-    //     }
-
-    //     const actionPacket: EnityEvent = {
-    //         type: "Entity",
-    //         enityId: this.Id,
-    //         enityType: this.type,
-    //         enventType: EntityEventType.UPDATE,
-    //         data:{
-    //             actionType: ActoinTypes.ATTACk,
-    //             data:{
-    //                 tree: npcIdsTree
-    //             }
-    //         }
-    //     }
-
-    //     this.eventBuss.add(actionPacket);
-    // }
 
     private dfs(root: LightNode): LightNode[] {
         const result: LightNode[] = [];

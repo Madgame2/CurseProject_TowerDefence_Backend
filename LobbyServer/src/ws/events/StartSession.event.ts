@@ -9,13 +9,8 @@ export const startSession = async (ctx: WSContext) => {
     const sessionSearchService = new SessionSearchService();
 
     try {
-        console.log(ctx.message?.payload);
         const dto = MatchMakingSchema.parse(ctx.message?.payload);
-
-        console.log(dto);
         const result = await sessionSearchService.StartSerach(ctx.userId!, dto);
-
-        console.log(result);
 
         ctx.ws.send(JSON.stringify({
             code: 200,
